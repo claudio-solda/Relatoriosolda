@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório de Solda</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 14px; background: #f0f4f8; color: #222; }
+  .header { background: #0d3b7c; color: white; padding: 10px 14px; }
+  .header h1 { font-size: 16px; text-align: center; letter-spacing: 1px; text-transform: uppercase; }
+  .header-fields { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .header-fields label { color: #ffd; font-size: 12px; }
+  .header-fields input, .header-fields select { background: #fff; border: none; border-radius: 4px; padding: 4px 7px; font-size: 13px; width: 140px; }
+  .header-fields .field { display: flex; flex-direction: column; gap: 2px; }
+  .counters { display: flex; gap: 10px; background: #e87722; padding: 7px 14px; align-items: center; flex-wrap: wrap; }
+  .counter-box { display: flex; align-items: center; gap: 6px; background: #fff3; border-radius: 6px; padding: 4px 10px; }
+  .counter-box span { color: white; font-weight: bold; font-size: 13px; }
+  .counter-box .num { font-size: 20px; color: white; font-weight: bold; min-width: 28px; text-align: center; }
+  .btn-cnt { background: #0d3b7c; color: white; border: none; border-radius: 4px; width: 26px; height: 26px; font-size: 16px; cursor: pointer; }
+  .table-wrap { padding: 10px; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px #0002; }
+  thead tr { background: #0d3b7c; color: white; }
+  thead th { padding: 7px 6px; font-size: 12px; text-align: left; }
+  tbody tr { border-bottom: 1px solid #e0e8f0; }
+  tbody tr:hover { background: #f0f6ff; }
+  td { padding: 4px 5px; font-size: 13px; vertical-align: middle; }
+  td.maq { font-weight: bold; color: #0d3b7c; white-space: nowrap; font-size: 12px; }
+  input[type=text], input[type=number] { border: 1px solid #c5d5e8; border-radius: 4px; padding: 3px 5px; font-size: 13px; width: 100%; }
+  input:focus { outline: 2px solid #e87722; border-color: #e87722; }
+  .peca-col { width: 100px; }
+  .qtd-col { width: 60px; }
+  .btn-add { background: #e87722; color: white; border: none; border-radius: 4px; padding: 3px 9px; font-size: 16px; cursor: pointer; }
+  .btn-rem { background: #c0392b; color: white; border: none; border-radius: 4px; padding: 2px 7px; font-size: 13px; cursor: pointer; }
+  .footer-btns { display: flex; gap: 10px; padding: 10px 14px; flex-wrap: wrap; }
+  .btn-print { background: #0d3b7c; color: white; border: none; border-radius: 6px; padding: 9px 20px; font-size: 14px; cursor: pointer; font-weight: bold; }
+  .btn-limpar { background: #888; color: white; border: none; border-radius: 6px; padding: 9px 20px; font-size: 14px; cursor: pointer; }
+  .salvo-msg { color: #2ecc71; font-size: 12px; padding: 4px 14px; }
+  .watermark { text-align: center; color: #aaa; font-size: 11px; padding: 8px; }
+  #senha-overlay { position: fixed; inset: 0; background: #0d3b7c; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+  #senha-overlay h2 { color: white; font-size: 18px; }
+  #senha-overlay input { padding: 10px; font-size: 16px; border-radius: 6px; border: none; width: 200px; text-align: center; }
+  #senha-overlay button { background: #e87722; color: white; border: none; border-radius: 6px; padding: 10px 30px; font-size: 15px; cursor: pointer; }
+  #senha-overlay .erro { color: #ffaaaa; font-size: 13px; }
+  @media print {
+    body { background: white; font-size: 13px; }
+    .header { background: #0d3b7c !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .counters { background: #e87722 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    thead tr { background: #0d3b7c !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #senha-overlay, .footer-btns, .btn-add, .btn-rem, .salvo-msg { display: none !important; }
+    .table-wrap { padding: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="senha-overlay">
+  <h2>🔒 Relatório de Solda</h2>
+  <input type="password" id="senha-input" placeholder="Digite a senha" onkeydown="if(event.key==='Enter')verificarSenha()">
+  <button onclick="verificarSenha()">Entrar</button>
+  <span class="erro" id="senha-erro"></span>
+</div>
+
+<div class="header">
+  <h1>Relatório de Produção — Solda</h1>
+  <div class="header-fields">
+    <div class="field"><label>Preparador</label><input type="text" id="preparador" placeholder="Nome" oninput="salvarDados()"></div>
+    <div class="field"><label>Facilitador</label><input type="text" id="facilitador" placeholder="Nome" oninput="salvarDados()"></div>
+    <div class="field"><label>Turno</label>
+      <select id="turno" onchange="salvarDados()">
+        <option>1º Turno</option>
+        <option>2º Turno</option>
+        <option>3º Turno</option>
+      </select>
+    </div>
+    <div class="field"><label>Data</label><input type="date" id="data" onchange="salvarDados()"></div>
+  </div>
+</div>
+
+<div class="counters">
+  <div class="counter-box">
+    <span>SET UPs</span>
+    <button class="btn-cnt" onclick="ajustar('setups',-1)">−</button>
+    <span class="num" id="setups">0</span>
+    <button class="btn-cnt" onclick="ajustar('setups',1)">+</button>
+  </div>
+  <div class="counter-box">
+    <span>TRY OUTs</span>
+    <button class="btn-cnt" onclick="ajustar('tryouts',-1)">−</button>
+    <span class="num" id="tryouts">0</span>
+    <button class="btn-cnt" onclick="ajustar('tryouts',1)">+</button>
+  </div>
+</div>
+
+<div id="salvo-msg" class="salvo-msg"></div>
+
+<div class="table-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>Máquina</th>
+      <th>Nº Peça</th>
+      <th>Qtd</th>
+      <th>Observação</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody id="tbody"></tbody>
+</table>
+</div>
+
+<div class="footer-btns">
+  <button class="btn-print" onclick="window.print()">🖨️ Ver para Print</button>
+  <button class="btn-limpar" onclick="limparTudo()">🗑️ Limpar Tudo</button>
+</div>
+
+<div class="watermark">© CLAUDIO — Relatório de Solda</div>
+
+<script>
+const SENHA = "Cacau249";
+const MAQUINAS = [
+  "MS001","MS002","MS003","MS004","MS005","MS006","MS007","MS008",
+  "Multi Ponto 009","MS010","MS011","MS012","MS013","MS014/MS015",
+  "Rebitadeira","Robo","Montagem 1","Montagem 2"
+];
+const STORAGE_KEY = "relatorio_solda_v2";
+
+let rows = {};
+MAQUINAS.forEach(m => rows[m] = [{ peca: '', qtd: '', obs: '' }]);
+
+function verificarSenha() {
+  const v = document.getElementById('senha-input').value;
+  if (v === SENHA) {
+    document.getElementById('senha-overlay').style.display = 'none';
+    init();
+  } else {
+    document.getElementById('senha-erro').textContent = "Senha incorreta!";
+  }
+}
+
+function init() {
+  carregarDados();
+  setInterval(salvarDados, 30000);
+}
+
+function render() {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  MAQUINAS.forEach(function(maq) {
+    rows[maq].forEach(function(row, i) {
+      const tr = document.createElement('tr');
+      const isFirst = i === 0;
+      const pecaEl = document.createElement('input');
+      pecaEl.type = 'text';
+      pecaEl.className = 'peca-col';
+      pecaEl.style.width = '95px';
+      pecaEl.value = row.peca || '';
+      pecaEl.oninput = function() { rows[maq][i].peca = this.value; salvarDados(); };
+
+      const qtdEl = document.createElement('input');
+      qtdEl.type = 'text';
+      qtdEl.style.width = '50px';
+      qtdEl.value = row.qtd || '';
+      qtdEl.oninput = function() { rows[maq][i].qtd = this.value; salvarDados(); };
+
+      const obsEl = document.createElement('input');
+      obsEl.type = 'text';
+      obsEl.style.width = '100%';
+      obsEl.value = row.obs || '';
+      obsEl.oninput = function() { rows[maq][i].obs = this.value; salvarDados(); };
+
+      const tdMaq = document.createElement('td');
+      tdMaq.className = 'maq';
+      tdMaq.textContent = isFirst ? maq : '';
+
+      const tdPeca = document.createElement('td');
+      tdPeca.appendChild(pecaEl);
+
+      const tdQtd = document.createElement('td');
+      tdQtd.appendChild(qtdEl);
+
+      const tdObs = document.createElement('td');
+      tdObs.appendChild(obsEl);
+
+      const tdBtn = document.createElement('td');
+      if (isFirst) {
+        const btn = document.createElement('button');
+        btn.className = 'btn-add';
+        btn.textContent = '+';
+        btn.onclick = function() { addRow(maq); };
+        tdBtn.appendChild(btn);
+      } else {
+        const btn = document.createElement('button');
+        btn.className = 'btn-rem';
+        btn.textContent = '✕';
+        btn.onclick = function() { remRow(maq, i); };
+        tdBtn.appendChild(btn);
+      }
+
+      tr.appendChild(tdMaq);
+      tr.appendChild(tdPeca);
+      tr.appendChild(tdQtd);
+      tr.appendChild(tdObs);
+      tr.appendChild(tdBtn);
+      tbody.appendChild(tr);
+    });
+  });
+}
+
+function addRow(maq) {
+  rows[maq].push({ peca: '', qtd: '', obs: '' });
+  render();
+  salvarDados();
+}
+
+function remRow(maq, i) {
+  rows[maq].splice(i, 1);
+  render();
+  salvarDados();
+}
+
+function ajustar(id, delta) {
+  const el = document.getElementById(id);
+  let v = parseInt(el.textContent) + delta;
+  if (v < 0) v = 0;
+  el.textContent = v;
+  salvarDados();
+}
+
+var salvoTimer = null;
+function salvarDados() {
+  const estado = {
+    preparador: document.getElementById('preparador').value,
+    facilitador: document.getElementById('facilitador').value,
+    turno: document.getElementById('turno').value,
+    data: document.getElementById('data').value,
+    setups: document.getElementById('setups').textContent,
+    tryouts: document.getElementById('tryouts').textContent,
+    rows: rows
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(estado));
+  const msg = document.getElementById('salvo-msg');
+  msg.textContent = '✅ Salvo automaticamente';
+  clearTimeout(salvoTimer);
+  salvoTimer = setTimeout(function() { msg.textContent = ''; }, 2000);
+}
+
+function carregarDados() {
+  const hoje = new Date().toISOString().split('T')[0];
+  document.getElementById('data').value = hoje;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) {
+    try {
+      const e = JSON.parse(raw);
+      document.getElementById('preparador').value = e.preparador || '';
+      document.getElementById('facilitador').value = e.facilitador || '';
+      document.getElementById('turno').value = e.turno || '1º Turno';
+      document.getElementById('data').value = e.data || hoje;
+      document.getElementById('setups').textContent = e.setups || '0';
+      document.getElementById('tryouts').textContent = e.tryouts || '0';
+      if (e.rows) {
+        MAQUINAS.forEach(function(m) {
+          if (e.rows[m] && e.rows[m].length > 0) rows[m] = e.rows[m];
+        });
+      }
+    } catch(err) { console.log('Erro ao carregar:', err); }
+  }
+  render();
+}
+
+function limparTudo() {
+  if (!confirm('Limpar todos os dados do relatório?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  MAQUINAS.forEach(function(m) { rows[m] = [{ peca: '', qtd: '', obs: '' }]; });
+  document.getElementById('preparador').value = '';
+  document.getElementById('facilitador').value = '';
+  document.getElementById('turno').value = '1º Turno';
+  document.getElementById('data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('setups').textContent = '0';
+  document.getElementById('tryouts').textContent = '0';
+  render();
+}
+</script>
+</body>
+</html>
