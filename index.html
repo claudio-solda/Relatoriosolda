@@ -172,6 +172,7 @@
   .btn-total { background: var(--accent); color: white; }
   .btn-print { background: #555; color: white; }
   .btn-foto { background: var(--green); color: white; margin-left: auto; }
+  .btn-whats { background: #25D366; color: white; }
 
   .content {
     padding: 14px;
@@ -429,6 +430,7 @@
   <button class="btn-top btn-total" onclick="calcularTotal()">✔ Total</button>
   <button class="btn-top btn-print" onclick="fazerPrint()">🖨️ Print</button>
   <button class="btn-top btn-foto" onclick="salvarFoto()">📸 Imagem</button>
+  <button class="btn-top btn-whats" onclick="enviarWhatsApp()">🟢 WhatsApp</button>
 </div>
 
 <div class="content" id="mainContent"></div>
@@ -606,6 +608,44 @@ function fazerPrint() {
     window.print();
     setTimeout(() => document.body.classList.remove('modo-foto'), 1000);
   }, 300);
+}
+
+function enviarWhatsApp() {
+  calcularTotal();
+  sincronizarSpans();
+  const data = document.getElementById('dataInput').value || '';
+  const partes = data.split('-');
+  const dataFmt = partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : data;
+
+  // Coletar dados das máquinas
+  const maquinas = ['MS001','MS002','MS003','MS004','MS005','MS006','MS007','MS008',
+    'MS009','MS010','MS011','MS012','MS013','MS014','MS015','Rebitadeira','Robo','Montagem 1','Montagem 2'];
+
+  let linhas = [];
+  maquinas.forEach(maq => {
+    const id = maq.replace(/\s/g,'_');
+    const prog = document.getElementById('prog_'+id)?.value || '0';
+    const prod = document.getElementById('prod_'+id)?.value || '0';
+    const obs  = document.getElementById('obs_'+id)?.value || '';
+    if (prog !== '0' || prod !== '0' || obs) {
+      linhas.push(`▪ ${maq}: ${prod}/${prog}${obs ? ' - '+obs : ''}`);
+    }
+  });
+
+  const total = document.getElementById('totalSpan')?.textContent || '';
+  const setups = document.getElementById('setUpsSpan')?.textContent || '0';
+  const tryouts = document.getElementById('tryOutSpan')?.textContent || '0';
+
+  let msg = `📋 *RELATÓRIO DE SOLDA*\n`;
+  msg += `📅 Data: ${dataFmt}\n\n`;
+  msg += `*PRODUÇÃO:*\n`;
+  msg += linhas.length > 0 ? linhas.join('\n') : '(sem dados)';
+  msg += `\n\n✅ *Total: ${total}*`;
+  msg += `\n⚙️ Set Up: ${setups} | Try Out: ${tryouts}`;
+  msg += `\n\n_Enviado pelo App Relatório de Solda_`;
+
+  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
 }
 
 function salvarFoto() {
