@@ -721,8 +721,6 @@ function enviarWhatsApp() {
   const turnoSelecionado = document.querySelector('input[name="turno"]:checked')?.value || '1º';
 
   const linhaTopo  = '🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦';
-  const linhaMeio  = '🟨🟨🟨🟨🟨🟨🟨🟨🟨🟨';
-  const linhaFinal = '🟥🟥🟥🟥🟥🟥🟥🟥🟥🟥';
 
   let msg = `${linhaTopo}\n`;
   msg += `👷 *Claudio Solda*\n`;
@@ -732,11 +730,9 @@ function enviarWhatsApp() {
   msg += `${linhaTopo}\n\n`;
   msg += `*PRODUÇÃO:*\n`;
   msg += linhas.length > 0 ? linhas.join('\n') : '(sem dados)';
-  msg += `\n\n${linhaMeio}\n`;
-  msg += `✅ *Total: ${total}*`;
+  msg += `\n\n✅ *Total: ${total}*`;
   msg += `\n⚙️ Set Up: ${setups} | Try Out: ${tryouts}`;
   msg += `\n🏭 Máquinas ativas: ${maquinasAtivas} de ${totalMaquinas}`;
-  msg += `\n${linhaFinal}`;
   msg += `\n\n_App exclusivo criado por Claudio_`;
   msg += `\n_Enviado pelo App Relatório de Solda_`;
 
