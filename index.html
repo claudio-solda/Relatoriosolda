@@ -636,14 +636,15 @@ function enviarWhatsApp() {
   const setups = document.getElementById('setUpsInput')?.value || '0';
   const tryouts = document.getElementById('tryOutInput')?.value || '0';
 
-  let msg = `📋 *RELATÓRIO DE SOLDA*\n`;
-  msg += `👷 Claudio Solda\n`;
+  let msg = `👷 *Claudio Solda*\n`;
+  msg += `📋 *RELATÓRIO DE SOLDA*\n`;
   msg += `📅 Data: ${dataFmt}\n\n`;
   msg += `*PRODUÇÃO:*\n`;
   msg += linhas.length > 0 ? linhas.join('\n') : '(sem dados)';
   msg += `\n\n✅ *Total: ${total}*`;
   msg += `\n⚙️ Set Up: ${setups} | Try Out: ${tryouts}`;
-  msg += `\n\n_Enviado pelo App Relatório de Solda_`;
+  msg += `\n\n_App exclusivo criado por Claudio_`;
+  msg += `\n_Enviado pelo App Relatório de Solda_`;
 
   const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
