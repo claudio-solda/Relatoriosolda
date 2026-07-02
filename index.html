@@ -617,24 +617,23 @@ function enviarWhatsApp() {
   const partes = data.split('-');
   const dataFmt = partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : data;
 
-  // Coletar dados das máquinas
-  const maquinas = ['MS001','MS002','MS003','MS004','MS005','MS006','MS007','MS008',
-    'MS009','MS010','MS011','MS012','MS013','MS014','MS015','Rebitadeira','Robo','Montagem 1','Montagem 2'];
-
+  // Coletar dados das máquinas (lendo a estrutura real: cada card tem linhas com peça/qtd/obs)
   let linhas = [];
-  maquinas.forEach(maq => {
-    const id = maq.replace(/\s/g,'_');
-    const prog = document.getElementById('prog_'+id)?.value || '0';
-    const prod = document.getElementById('prod_'+id)?.value || '0';
-    const obs  = document.getElementById('obs_'+id)?.value || '';
-    if (prog !== '0' || prod !== '0' || obs) {
-      linhas.push(`▪ ${maq}: ${prod}/${prog}${obs ? ' - '+obs : ''}`);
-    }
+  document.querySelectorAll('.maq-card').forEach(card => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
+    card.querySelectorAll('.item-row').forEach(row => {
+      const peca = row.querySelector('.peca-input')?.value || '';
+      const qtd  = row.querySelector('.qtd-input')?.value || '';
+      const obs  = row.querySelector('.obs-input')?.value || '';
+      if (peca || (qtd && qtd !== '0')) {
+        linhas.push(`▪ ${nome}: ${peca || '-'} - ${qtd || '0'}${obs ? ' - '+obs : ''}`);
+      }
+    });
   });
 
-  const total = document.getElementById('totalSpan')?.textContent || '';
-  const setups = document.getElementById('setUpsSpan')?.textContent || '0';
-  const tryouts = document.getElementById('tryOutSpan')?.textContent || '0';
+  const total = document.getElementById('totalDisplay')?.textContent || '0';
+  const setups = document.getElementById('setUpsInput')?.value || '0';
+  const tryouts = document.getElementById('tryOutInput')?.value || '0';
 
   let msg = `📋 *RELATÓRIO DE SOLDA*\n`;
   msg += `📅 Data: ${dataFmt}\n\n`;
