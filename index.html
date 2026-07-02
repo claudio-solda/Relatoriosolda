@@ -637,6 +637,7 @@ function enviarWhatsApp() {
   const tryouts = document.getElementById('tryOutInput')?.value || '0';
 
   let msg = `📋 *RELATÓRIO DE SOLDA*\n`;
+  msg += `👷 Claudio Solda\n`;
   msg += `📅 Data: ${dataFmt}\n\n`;
   msg += `*PRODUÇÃO:*\n`;
   msg += linhas.length > 0 ? linhas.join('\n') : '(sem dados)';
