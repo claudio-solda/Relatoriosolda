@@ -484,10 +484,12 @@
 <div class="top-bar">
   <label>Data</label>
   <input type="date" id="dataInput">
+  <span id="salvoIndicador" style="font-size:0.68rem;color:var(--muted);font-weight:600;">💾 —</span>
   <button class="btn-top btn-total" onclick="calcularTotal()">✔ Total</button>
   <button class="btn-top btn-print" onclick="fazerPrint()">🖨️ Print</button>
   <button class="btn-top btn-foto" onclick="salvarFoto()">📸 Imagem</button>
   <button class="btn-top btn-whats" onclick="enviarWhatsApp()">🟢 WhatsApp</button>
+  <button class="btn-top" style="background:#a33;color:#fff;" onclick="novoRelatorio()">🗑️ Novo</button>
 </div>
 
 <div class="turno-bar" id="turnoBar">
@@ -573,7 +575,7 @@ const maquinas = [
 const hoje = new Date().toISOString().split('T')[0];
 document.getElementById('dataInput').value = hoje;
 atualizarData();
-document.getElementById('dataInput').addEventListener('change', atualizarData);
+document.getElementById('dataInput').addEventListener('change', () => { atualizarData(); salvarEstado(); });
 
 function atualizarData() {
   const val = document.getElementById('dataInput').value;
@@ -606,7 +608,7 @@ function criarLinha(maqId) {
       <input type="text" placeholder="..." class="obs-input">
       <span class="val-span"></span>
     </div>
-    <button class="btn-remove" onclick="this.closest('.item-row').remove()">✕</button>
+    <button class="btn-remove" onclick="this.closest('.item-row').remove(); salvarEstado();">✕</button>
   `;
   return row;
 }
@@ -628,6 +630,7 @@ function criarCard(maq, idx) {
 
 function adicionarLinha(bodyId, idx) {
   document.getElementById(bodyId).appendChild(criarLinha(idx));
+  salvarEstado();
 }
 
 const content = document.getElementById('mainContent');
@@ -656,6 +659,103 @@ totaisCard.innerHTML = `
   </div>
 `;
 content.appendChild(totaisCard);
+
+// ── AUTOSAVE / RASCUNHO (localStorage) ──
+const STORAGE_KEY = 'solda_relatorio_rascunho_v1';
+let salvarTimeout = null;
+
+function coletarEstado() {
+  const estado = { data: document.getElementById('dataInput').value, turno: document.querySelector('input[name="turno"]:checked')?.value || '1º', setups: document.getElementById('setUpsInput')?.value || '', tryouts: document.getElementById('tryOutInput')?.value || '', maquinas: {} };
+  document.querySelectorAll('.maq-card').forEach((card, idx) => {
+    const linhas = [];
+    card.querySelectorAll('.item-row').forEach(row => {
+      linhas.push({
+        peca: row.querySelector('.peca-input')?.value || '',
+        qtd: row.querySelector('.qtd-input')?.value || '',
+        obs: row.querySelector('.obs-input')?.value || ''
+      });
+    });
+    estado.maquinas[idx] = linhas;
+  });
+  return estado;
+}
+
+function atualizarIndicadorSalvo() {
+  const el = document.getElementById('salvoIndicador');
+  if (!el) return;
+  const agora = new Date();
+  const hh = String(agora.getHours()).padStart(2,'0');
+  const mm = String(agora.getMinutes()).padStart(2,'0');
+  el.textContent = `💾 Salvo ${hh}:${mm}`;
+}
+
+function salvarEstadoImediato() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(coletarEstado()));
+    atualizarIndicadorSalvo();
+  } catch (e) {
+    console.log('Erro ao salvar rascunho:', e);
+  }
+}
+
+function salvarEstado() {
+  clearTimeout(salvarTimeout);
+  salvarTimeout = setTimeout(salvarEstadoImediato, 250);
+}
+
+function restaurarEstado() {
+  let salvo;
+  try {
+    salvo = JSON.parse(localStorage.getItem(STORAGE_KEY));
+  } catch (e) { salvo = null; }
+  if (!salvo) return;
+
+  if (salvo.data) {
+    document.getElementById('dataInput').value = salvo.data;
+    atualizarData();
+  }
+  if (salvo.turno) {
+    const radio = document.querySelector(`input[name="turno"][value="${salvo.turno}"]`);
+    if (radio) radio.checked = true;
+  }
+  if (salvo.setups !== undefined) document.getElementById('setUpsInput').value = salvo.setups;
+  if (salvo.tryouts !== undefined) document.getElementById('tryOutInput').value = salvo.tryouts;
+
+  Object.keys(salvo.maquinas || {}).forEach(idx => {
+    const linhasSalvas = salvo.maquinas[idx];
+    const body = document.getElementById(`body_${idx}`);
+    if (!body || !linhasSalvas || linhasSalvas.length === 0) return;
+    // Garante linhas suficientes (já existe 1 por padrão)
+    while (body.querySelectorAll('.item-row').length < linhasSalvas.length) {
+      body.appendChild(criarLinha(idx));
+    }
+    const rows = body.querySelectorAll('.item-row');
+    linhasSalvas.forEach((dados, i) => {
+      const row = rows[i];
+      if (!row) return;
+      row.querySelector('.peca-input').value = dados.peca || '';
+      row.querySelector('.qtd-input').value = dados.qtd || '';
+      row.querySelector('.obs-input').value = dados.obs || '';
+    });
+  });
+
+  calcularTotal();
+  atualizarIndicadorSalvo();
+}
+
+function novoRelatorio() {
+  if (confirm('Isso vai apagar o rascunho salvo e limpar todos os campos preenchidos hoje. Tem certeza?')) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+}
+
+// Autosave em qualquer digitação dentro do conteúdo (peça, qtd, obs, set up, try out)
+content.addEventListener('input', () => { calcularTotal(); salvarEstado(); });
+document.querySelectorAll('input[name="turno"]').forEach(r => r.addEventListener('change', salvarEstado));
+
+// Restaura rascunho salvo (se existir) assim que a tela é montada
+restaurarEstado();
 
 function calcularTotal() {
   let total = 0;
