@@ -463,6 +463,98 @@
 </style>
 </head>
 <body>
+<!-- DIGITAL LOCK -->
+<div id="digitalLockScreen" style="position:fixed;inset:0;background:#0f172a;color:#fff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:-apple-system,Segoe UI,Roboto,sans-serif;text-align:center;padding:24px;">
+  <div style="font-size:56px;">🔒</div>
+  <div id="digitalLockMsg" style="font-size:15px;max-width:280px;line-height:1.4;">Carregando...</div>
+  <button id="digitalLockBtn" style="padding:14px 30px;font-size:16px;border-radius:12px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-weight:600;">Desbloquear</button>
+</div>
+<script>
+(function(){
+  var LOCK_KEY = 'claudio_digital_cred_id';
+  var overlay = document.getElementById('digitalLockScreen');
+  var msg = document.getElementById('digitalLockMsg');
+  var btn = document.getElementById('digitalLockBtn');
+
+  function unlock(){ overlay.style.display = 'none'; }
+
+  function b64urlToBuf(b64url){
+    var b64 = b64url.replace(/-/g,'+').replace(/_/g,'/');
+    var pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+    var bin = atob(b64+pad);
+    var buf = new Uint8Array(bin.length);
+    for (var i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+    return buf;
+  }
+  function bufToB64url(buf){
+    var bin=''; var bytes = new Uint8Array(buf);
+    for (var i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  }
+
+  function register(){
+    msg.textContent = 'Cadastrando sua digital...';
+    var challenge = crypto.getRandomValues(new Uint8Array(32));
+    var userId = crypto.getRandomValues(new Uint8Array(16));
+    navigator.credentials.create({
+      publicKey: {
+        challenge: challenge,
+        rp: { name: 'Apps do Claudio' },
+        user: { id: userId, name: 'claudio', displayName: 'Claudio' },
+        pubKeyCredParams: [{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
+        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        timeout: 60000,
+        attestation: 'none'
+      }
+    }).then(function(cred){
+      localStorage.setItem(LOCK_KEY, bufToB64url(cred.rawId));
+      unlock();
+    }).catch(function(e){
+      msg.textContent = 'Não foi possível cadastrar. Toque para tentar de novo.';
+      console.error(e);
+    });
+  }
+
+  function authenticate(credId){
+    msg.textContent = 'Toque no sensor de digital...';
+    var challenge = crypto.getRandomValues(new Uint8Array(32));
+    navigator.credentials.get({
+      publicKey: {
+        challenge: challenge,
+        allowCredentials: [{ id: b64urlToBuf(credId), type: 'public-key' }],
+        userVerification: 'required',
+        timeout: 60000
+      }
+    }).then(function(){ unlock(); })
+    .catch(function(e){
+      msg.textContent = 'Digital não reconhecida. Toque para tentar de novo.';
+      console.error(e);
+    });
+  }
+
+  function init(){
+    if (!window.PublicKeyCredential){
+      msg.textContent = 'Navegador sem suporte a digital. Acesso liberado.';
+      setTimeout(unlock, 1200);
+      return;
+    }
+    var credId = localStorage.getItem(LOCK_KEY);
+    if (credId){
+      msg.textContent = 'Toque para desbloquear com sua digital';
+      btn.textContent = 'Desbloquear';
+      btn.onclick = function(){ authenticate(credId); };
+    } else {
+      msg.textContent = 'Cadastre sua digital para proteger este app';
+      btn.textContent = 'Cadastrar digital';
+      btn.onclick = register;
+    }
+  }
+  init();
+})();
+</script>
+<!-- FIM DIGITAL LOCK -->
+
+
 
 <!-- TOAST OFFLINE / ONLINE -->
 <div id="toastOffline">📴 Sem internet — modo offline</div>
