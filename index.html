@@ -463,20 +463,57 @@
 </style>
 </head>
 <body>
-<!-- DIGITAL LOCK -->
-<div id="digitalLockScreen" style="position:fixed;inset:0;background:#0f172a;color:#fff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:-apple-system,Segoe UI,Roboto,sans-serif;text-align:center;padding:24px;">
-  <div style="font-size:56px;">🔒</div>
-  <div id="digitalLockMsg" style="font-size:15px;max-width:280px;line-height:1.4;">Carregando...</div>
-  <button id="digitalLockBtn" style="padding:14px 30px;font-size:16px;border-radius:12px;border:none;background:#3b82f6;color:#fff;cursor:pointer;font-weight:600;">Desbloquear</button>
+<!-- LOCK SCREEN (digital + senha) -->
+<div id="lockScreen999" style="position:fixed;inset:0;background:linear-gradient(135deg,#1a2e4a,#0f172a);color:#fff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:-apple-system,Segoe UI,Roboto,sans-serif;text-align:center;padding:24px;">
+  <div style="font-size:44px;">🔒</div>
+  <div style="font-weight:700;font-size:18px;">Relatório Solda</div>
+
+  <div id="digitalArea999" style="display:none; flex-direction:column; align-items:center; gap:12px;">
+    <div id="digitalMsg999" style="font-size:13px; color:#dbe4f5; max-width:250px;">Carregando...</div>
+    <button id="digitalBtn999" type="button" style="padding:13px 28px;font-size:15px;border-radius:12px;border:none;background:#3b82f6;color:#fff;font-weight:700;cursor:pointer;">Usar digital</button>
+    <button id="switchToPwBtn999" type="button" style="background:transparent;color:#cbd5e1;font-size:12px;border:1px solid rgba(255,255,255,.3);padding:8px 14px;border-radius:10px;cursor:pointer;">Usar senha</button>
+  </div>
+
+  <div id="pwArea999" style="display:none; flex-direction:column; align-items:center; gap:12px;">
+    <input type="password" id="pwInput999" placeholder="Senha" style="width:200px;text-align:center;font-size:16px;letter-spacing:2px;padding:11px;border-radius:10px;border:none;">
+    <div id="lockErr999" style="font-size:12px;color:#ffd6d6;height:14px;"></div>
+    <button id="pwEnterBtn999" type="button" style="padding:12px 26px;border-radius:10px;border:none;background:#fff;color:#111;font-weight:700;cursor:pointer;">Entrar</button>
+    <button id="switchToDigitalBtn999" type="button" style="display:none;background:transparent;color:#cbd5e1;font-size:12px;border:1px solid rgba(255,255,255,.3);padding:8px 14px;border-radius:10px;cursor:pointer;">Usar digital</button>
+  </div>
 </div>
 <script>
 (function(){
-  var LOCK_KEY = 'claudio_digital_cred_id';
-  var overlay = document.getElementById('digitalLockScreen');
-  var msg = document.getElementById('digitalLockMsg');
-  var btn = document.getElementById('digitalLockBtn');
+  var PASSWORD = 'Cacau249';
+  var DIGITAL_KEY = 'claudio_relatorio_digital_cred_id';
+  var lockScreen = document.getElementById('lockScreen999');
+  var digitalArea = document.getElementById('digitalArea999');
+  var pwArea = document.getElementById('pwArea999');
+  var digMsg = document.getElementById('digitalMsg999');
+  var digBtn = document.getElementById('digitalBtn999');
+  var pwInput = document.getElementById('pwInput999');
+  var lockErr = document.getElementById('lockErr999');
 
-  function unlock(){ overlay.style.display = 'none'; }
+  function unlockApp999(){ lockScreen.style.display = 'none'; }
+
+  function showPwMode(){
+    digitalArea.style.display = 'none';
+    pwArea.style.display = 'flex';
+    document.getElementById('switchToDigitalBtn999').style.display = localStorage.getItem(DIGITAL_KEY) ? 'block' : 'none';
+    pwInput.focus();
+  }
+  function showDigitalMode(){
+    pwArea.style.display = 'none';
+    digitalArea.style.display = 'flex';
+  }
+  document.getElementById('switchToPwBtn999').addEventListener('click', showPwMode);
+  document.getElementById('switchToDigitalBtn999').addEventListener('click', showDigitalMode);
+
+  function tryUnlock999(){
+    if (pwInput.value === PASSWORD){ unlockApp999(); }
+    else { lockErr.textContent = 'Senha incorreta'; }
+  }
+  document.getElementById('pwEnterBtn999').addEventListener('click', tryUnlock999);
+  pwInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') tryUnlock999(); });
 
   function b64urlToBuf(b64url){
     var b64 = b64url.replace(/-/g,'+').replace(/_/g,'/');
@@ -492,67 +529,80 @@
     return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
   }
 
-  function register(){
-    msg.textContent = 'Cadastrando sua digital...';
-    var challenge = crypto.getRandomValues(new Uint8Array(32));
-    var userId = crypto.getRandomValues(new Uint8Array(16));
-    navigator.credentials.create({
-      publicKey: {
-        challenge: challenge,
-        rp: { name: 'Apps do Claudio' },
-        user: { id: userId, name: 'claudio', displayName: 'Claudio' },
-        pubKeyCredParams: [{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
-        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
-        timeout: 60000,
-        attestation: 'none'
-      }
-    }).then(function(cred){
-      localStorage.setItem(LOCK_KEY, bufToB64url(cred.rawId));
-      unlock();
-    }).catch(function(e){
-      msg.textContent = 'Não foi possível cadastrar. Toque para tentar de novo.';
-      console.error(e);
-    });
-  }
-
-  function authenticate(credId){
-    msg.textContent = 'Toque no sensor de digital...';
-    var challenge = crypto.getRandomValues(new Uint8Array(32));
-    navigator.credentials.get({
-      publicKey: {
-        challenge: challenge,
-        allowCredentials: [{ id: b64urlToBuf(credId), type: 'public-key' }],
-        userVerification: 'required',
-        timeout: 60000
-      }
-    }).then(function(){ unlock(); })
-    .catch(function(e){
-      msg.textContent = 'Digital não reconhecida. Toque para tentar de novo.';
-      console.error(e);
-    });
-  }
-
-  function init(){
-    if (!window.PublicKeyCredential){
-      msg.textContent = 'Navegador sem suporte a digital. Acesso liberado.';
-      setTimeout(unlock, 1200);
-      return;
-    }
-    var credId = localStorage.getItem(LOCK_KEY);
-    if (credId){
-      msg.textContent = 'Toque para desbloquear com sua digital';
-      btn.textContent = 'Desbloquear';
-      btn.onclick = function(){ authenticate(credId); };
-    } else {
-      msg.textContent = 'Cadastre sua digital para proteger este app';
-      btn.textContent = 'Cadastrar digital';
-      btn.onclick = register;
+  function digitalRegister(){
+    try{
+      digMsg.textContent = 'Cadastrando sua digital...';
+      var challenge = crypto.getRandomValues(new Uint8Array(32));
+      var userId = crypto.getRandomValues(new Uint8Array(16));
+      navigator.credentials.create({
+        publicKey: {
+          challenge: challenge,
+          rp: { name: 'Relatório Solda' },
+          user: { id: userId, name: 'claudio', displayName: 'Claudio' },
+          pubKeyCredParams: [{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+          timeout: 60000,
+          attestation: 'none'
+        }
+      }).then(function(cred){
+        localStorage.setItem(DIGITAL_KEY, bufToB64url(cred.rawId));
+        unlockApp999();
+      }).catch(function(e){
+        digMsg.textContent = 'Não deu pra cadastrar a digital. Toque em "Usar senha".';
+        console.error(e);
+      });
+    }catch(e){
+      digMsg.textContent = 'Digital não disponível aqui. Toque em "Usar senha".';
     }
   }
-  init();
+
+  function digitalAuthenticate(credId){
+    try{
+      digMsg.textContent = 'Toque no sensor de digital...';
+      var challenge = crypto.getRandomValues(new Uint8Array(32));
+      navigator.credentials.get({
+        publicKey: {
+          challenge: challenge,
+          allowCredentials: [{ id: b64urlToBuf(credId), type: 'public-key' }],
+          userVerification: 'required',
+          timeout: 60000
+        }
+      }).then(function(){ unlockApp999(); })
+      .catch(function(e){
+        digMsg.textContent = 'Digital não reconhecida. Toque em "Usar senha".';
+        console.error(e);
+      });
+    }catch(e){
+      digMsg.textContent = 'Digital não disponível aqui. Toque em "Usar senha".';
+    }
+  }
+
+  function initDigital(){
+    try{
+      if (!window.PublicKeyCredential || !navigator.credentials){
+        showPwMode();
+        return;
+      }
+      var credId = localStorage.getItem(DIGITAL_KEY);
+      showDigitalMode();
+      if (credId){
+        digMsg.textContent = 'Toque para desbloquear com sua digital';
+        digBtn.textContent = 'Usar digital';
+        digBtn.onclick = function(){ digitalAuthenticate(credId); };
+      } else {
+        digMsg.textContent = 'Cadastre sua digital para agilizar o acesso';
+        digBtn.textContent = 'Cadastrar digital';
+        digBtn.onclick = digitalRegister;
+      }
+    }catch(e){
+      showPwMode();
+    }
+  }
+  window.addEventListener('error', showPwMode);
+  initDigital();
 })();
 </script>
-<!-- FIM DIGITAL LOCK -->
+<!-- FIM LOCK SCREEN -->
 
 
 
