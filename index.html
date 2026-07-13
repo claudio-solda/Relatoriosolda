@@ -798,6 +798,10 @@ totaisCard.innerHTML = `
       <input type="number" min="0" placeholder="0" id="tryOutInput">
       <span class="val-span" id="tryOutSpan"></span>
     </div>
+    <div class="total-row-item" style="border-top:1.5px dashed var(--border); margin-top:6px; padding-top:10px;">
+      <label>🔐 Cód. Verificação</label>
+      <div class="total-display" id="codigoDisplay" style="font-size:1rem; color:var(--accent);">CS-0000</div>
+    </div>
   </div>
 `;
 content.appendChild(totaisCard);
@@ -905,6 +909,15 @@ function calcularTotal() {
     total += parseFloat(i.value) || 0;
   });
   document.getElementById('totalDisplay').textContent = total;
+
+  const data = document.getElementById('dataInput')?.value || '';
+  const turno = document.querySelector('input[name="turno"]:checked')?.value || '1º';
+  const setups = document.getElementById('setUpsInput')?.value || '0';
+  const tryouts = document.getElementById('tryOutInput')?.value || '0';
+  const codigoEl = document.getElementById('codigoDisplay');
+  if (codigoEl && typeof gerarCodigoVerificacao === 'function') {
+    codigoEl.textContent = gerarCodigoVerificacao(`${data}|${turno}|${total}|${setups}|${tryouts}`);
+  }
 }
 
 function sincronizarSpans() {
@@ -928,6 +941,20 @@ function fazerPrint() {
     window.print();
     setTimeout(() => document.body.classList.remove('modo-foto'), 1000);
   }, 300);
+}
+
+// ── CÓDIGO DE VERIFICAÇÃO ÚNICO ──
+// Gera um código curto e determinístico a partir dos dados do relatório.
+// Serve como "assinatura" do app: qualquer relatório gerado por este
+// sistema carrega esse código, o que facilita identificar a origem.
+function gerarCodigoVerificacao(semente) {
+  let hash = 0;
+  for (let i = 0; i < semente.length; i++) {
+    hash = ((hash << 5) - hash) + semente.charCodeAt(i);
+    hash |= 0;
+  }
+  const base36 = Math.abs(hash).toString(36).toUpperCase().slice(0, 4).padStart(4, '0');
+  return `CS-${base36}`;
 }
 
 function enviarWhatsApp() {
@@ -962,7 +989,10 @@ function enviarWhatsApp() {
 
   const turnoSelecionado = document.querySelector('input[name="turno"]:checked')?.value || '1º';
 
-  const linhaTopo  = '🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦';
+  // Código único deste relatório (data + turno + total + setups + tryouts)
+  const codigo = gerarCodigoVerificacao(`${dataFmt}|${turnoSelecionado}|${total}|${setups}|${tryouts}|${linhas.length}`);
+
+  const linhaTopo  = '🛡️⚙️🛡️⚙️🛡️⚙️🛡️⚙️🛡️⚙️';
 
   let msg = `${linhaTopo}\n`;
   msg += `👷 *Claudio Solda*\n`;
@@ -975,8 +1005,8 @@ function enviarWhatsApp() {
   msg += `\n\n✅ *Total: ${total}*`;
   msg += `\n⚙️ Set Up: ${setups} | Try Out: ${tryouts}`;
   msg += `\n🏭 Máquinas ativas: ${maquinasAtivas} de ${totalMaquinas}`;
-  msg += `\n\n_App exclusivo criado por Claudio_`;
-  msg += `\n_Enviado pelo App Relatório de Solda_`;
+  msg += `\n\n🔐 *Cód. de verificação: ${codigo}*`;
+  msg += `\n_App exclusivo criado por Claudio © — Relatório de Solda_`;
 
   const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
