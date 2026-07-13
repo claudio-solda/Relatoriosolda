@@ -658,6 +658,85 @@
 <div class="content" id="mainContent"></div>
 
 <script>
+// ── FRASES ROTATIVAS (uma por dia, sem repetir por 25 dias) ──
+const FRASES_RODAPE = [
+  "Ninguém constrói nada sozinho... seja ponte, não muro.",
+  "Quem constrói pontes atravessa junto; quem constrói muros fica sozinho do outro lado.",
+  "Toda obra que dura foi levantada por mãos que se ajudaram.",
+  "Ser ponte é escolher todo dia; ser muro é só deixar acontecer.",
+  "O que te feriu não precisa te definir — você pode escolher construir.",
+  "Deus não dorme, e o que Ele começa em você, Ele termina.",
+  "Uma ponte não esconde o rio, ela ensina a atravessá-lo.",
+  "Grandes obras começam com pequenos gestos de quem decide ajudar.",
+  "Não existe equipe forte onde cada um constrói seu próprio muro.",
+  "A força de um time não está na perfeição, está na união.",
+  "Quem planta pontes colhe caminhos; quem planta muros colhe solidão.",
+  "Cada dia é uma nova chance de ser ponte pra alguém.",
+  "O trabalho bem feito de hoje é o alicerce da confiança de amanhã.",
+  "Ninguém chega longe carregando muro nas costas.",
+  "A fé move o que a força sozinha não consegue erguer.",
+  "Servir é a ponte mais forte que existe entre pessoas.",
+  "Onde há união, o impossível vira só mais um dia de trabalho.",
+  "Construir é coisa de quem acredita antes de ver o resultado.",
+  "O bom exemplo constrói pontes que nem palavras alcançam.",
+  "Quem ergue o outro também se ergue junto.",
+  "A verdadeira liderança é ponte: sustenta, não separa.",
+  "Firmeza não é dureza; é constância pra sustentar quem precisa.",
+  "O que parece pequeno hoje pode ser a base de algo grande amanhã.",
+  "Ninguém atravessa sozinho — por isso a ponte existe.",
+  "Fé e trabalho juntos constroem o que o tempo não derruba."
+];
+
+function fraseDoDia() {
+  const hoje = new Date();
+  const inicioAno = new Date(hoje.getFullYear(), 0, 0);
+  const diff = hoje - inicioAno;
+  const diaDoAno = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const idx = diaDoAno % FRASES_RODAPE.length;
+  return FRASES_RODAPE[idx];
+}
+
+// ── CONTADOR SEQUENCIAL DE RELATÓRIOS ──
+const CONTADOR_KEY = 'solda_relatorio_contador_seq';
+
+function proximoNumeroRelatorio() {
+  let n = parseInt(localStorage.getItem(CONTADOR_KEY) || '0', 10);
+  n += 1;
+  localStorage.setItem(CONTADOR_KEY, String(n));
+  return n;
+}
+
+function numeroRelatorioAtual() {
+  return parseInt(localStorage.getItem(CONTADOR_KEY) || '0', 10);
+}
+
+// ── COMPARAÇÃO COM O DIA ANTERIOR ──
+const HISTORICO_TOTAL_KEY = 'solda_relatorio_historico_totais';
+
+function salvarTotalDoDia(dataISO, total) {
+  let historico;
+  try {
+    historico = JSON.parse(localStorage.getItem(HISTORICO_TOTAL_KEY)) || {};
+  } catch (e) { historico = {}; }
+  historico[dataISO] = total;
+  localStorage.setItem(HISTORICO_TOTAL_KEY, JSON.stringify(historico));
+}
+
+function compararComOntem(dataISO, totalHoje) {
+  let historico;
+  try {
+    historico = JSON.parse(localStorage.getItem(HISTORICO_TOTAL_KEY)) || {};
+  } catch (e) { historico = {}; }
+  const d = new Date(dataISO);
+  d.setDate(d.getDate() - 1);
+  const ontemISO = d.toISOString().split('T')[0];
+  const totalOntem = historico[ontemISO];
+  if (totalOntem === undefined || totalOntem === 0) return null;
+  const variacao = ((totalHoje - totalOntem) / totalOntem) * 100;
+  const seta = variacao >= 0 ? '🔼' : '🔽';
+  return `${seta} ${Math.abs(variacao).toFixed(0)}% ${variacao >= 0 ? 'acima' : 'abaixo'} de ontem`;
+}
+
 // ── PWA: Service Worker ──
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -962,85 +1041,6 @@ function gerarCodigoVerificacao(semente) {
   }
   const base36 = Math.abs(hash).toString(36).toUpperCase().slice(0, 4).padStart(4, '0');
   return `CS-${base36}`;
-}
-
-// ── FRASES ROTATIVAS (uma por dia, sem repetir por 25 dias) ──
-const FRASES_RODAPE = [
-  "Ninguém constrói nada sozinho... seja ponte, não muro.",
-  "Quem constrói pontes atravessa junto; quem constrói muros fica sozinho do outro lado.",
-  "Toda obra que dura foi levantada por mãos que se ajudaram.",
-  "Ser ponte é escolher todo dia; ser muro é só deixar acontecer.",
-  "O que te feriu não precisa te definir — você pode escolher construir.",
-  "Deus não dorme, e o que Ele começa em você, Ele termina.",
-  "Uma ponte não esconde o rio, ela ensina a atravessá-lo.",
-  "Grandes obras começam com pequenos gestos de quem decide ajudar.",
-  "Não existe equipe forte onde cada um constrói seu próprio muro.",
-  "A força de um time não está na perfeição, está na união.",
-  "Quem planta pontes colhe caminhos; quem planta muros colhe solidão.",
-  "Cada dia é uma nova chance de ser ponte pra alguém.",
-  "O trabalho bem feito de hoje é o alicerce da confiança de amanhã.",
-  "Ninguém chega longe carregando muro nas costas.",
-  "A fé move o que a força sozinha não consegue erguer.",
-  "Servir é a ponte mais forte que existe entre pessoas.",
-  "Onde há união, o impossível vira só mais um dia de trabalho.",
-  "Construir é coisa de quem acredita antes de ver o resultado.",
-  "O bom exemplo constrói pontes que nem palavras alcançam.",
-  "Quem ergue o outro também se ergue junto.",
-  "A verdadeira liderança é ponte: sustenta, não separa.",
-  "Firmeza não é dureza; é constância pra sustentar quem precisa.",
-  "O que parece pequeno hoje pode ser a base de algo grande amanhã.",
-  "Ninguém atravessa sozinho — por isso a ponte existe.",
-  "Fé e trabalho juntos constroem o que o tempo não derruba."
-];
-
-function fraseDoDia() {
-  const hoje = new Date();
-  const inicioAno = new Date(hoje.getFullYear(), 0, 0);
-  const diff = hoje - inicioAno;
-  const diaDoAno = Math.floor(diff / (1000 * 60 * 60 * 24));
-  const idx = diaDoAno % FRASES_RODAPE.length;
-  return FRASES_RODAPE[idx];
-}
-
-// ── CONTADOR SEQUENCIAL DE RELATÓRIOS ──
-const CONTADOR_KEY = 'solda_relatorio_contador_seq';
-
-function proximoNumeroRelatorio() {
-  let n = parseInt(localStorage.getItem(CONTADOR_KEY) || '0', 10);
-  n += 1;
-  localStorage.setItem(CONTADOR_KEY, String(n));
-  return n;
-}
-
-function numeroRelatorioAtual() {
-  return parseInt(localStorage.getItem(CONTADOR_KEY) || '0', 10);
-}
-
-// ── COMPARAÇÃO COM O DIA ANTERIOR ──
-const HISTORICO_TOTAL_KEY = 'solda_relatorio_historico_totais';
-
-function salvarTotalDoDia(dataISO, total) {
-  let historico;
-  try {
-    historico = JSON.parse(localStorage.getItem(HISTORICO_TOTAL_KEY)) || {};
-  } catch (e) { historico = {}; }
-  historico[dataISO] = total;
-  localStorage.setItem(HISTORICO_TOTAL_KEY, JSON.stringify(historico));
-}
-
-function compararComOntem(dataISO, totalHoje) {
-  let historico;
-  try {
-    historico = JSON.parse(localStorage.getItem(HISTORICO_TOTAL_KEY)) || {};
-  } catch (e) { historico = {}; }
-  const d = new Date(dataISO);
-  d.setDate(d.getDate() - 1);
-  const ontemISO = d.toISOString().split('T')[0];
-  const totalOntem = historico[ontemISO];
-  if (totalOntem === undefined || totalOntem === 0) return null;
-  const variacao = ((totalHoje - totalOntem) / totalOntem) * 100;
-  const seta = variacao >= 0 ? '🔼' : '🔽';
-  return `${seta} ${Math.abs(variacao).toFixed(0)}% ${variacao >= 0 ? 'acima' : 'abaixo'} de ontem`;
 }
 
 function enviarWhatsApp() {
