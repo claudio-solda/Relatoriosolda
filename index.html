@@ -469,6 +469,65 @@
     .totais-card { break-inside: avoid !important; box-shadow: none !important; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   }
+  .modal-ajuda-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-ajuda-caixa {
+    background: var(--white);
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    border-radius: 16px 16px 0 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-ajuda-header {
+    position: sticky;
+    top: 0;
+    background: var(--navy);
+    color: var(--white);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1;
+  }
+  .modal-ajuda-header h2 { font-size: 1.05rem; }
+  .modal-ajuda-fechar {
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 1.2rem;
+    padding: 4px 10px;
+  }
+  .modal-ajuda-corpo { padding: 14px 18px 24px 18px; }
+  .modal-ajuda-corpo h3 {
+    color: var(--accent);
+    font-size: 0.95rem;
+    margin: 16px 0 6px 0;
+  }
+  .modal-ajuda-corpo h3:first-child { margin-top: 0; }
+  .modal-ajuda-corpo ol {
+    padding-left: 20px;
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .modal-ajuda-corpo li { margin-bottom: 4px; }
+  .modal-ajuda-rodape {
+    margin-top: 18px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-align: center;
+    font-style: italic;
+  }
 </style>
 </head>
 <body>
@@ -644,6 +703,7 @@
   <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="mostrarRelatorioOperadores()">📊 Relatório Operadores</button>
   <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="exportarCSV()">📄 CSV</button>
   <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="backupDrive()">☁️ Backup</button>
+  <button class="btn-top" style="background:#6a5b9c;color:#fff;" onclick="abrirAjuda()">ℹ️ Ajuda</button>
   <button class="btn-top" style="background:#a33;color:#fff;" onclick="novoRelatorio()">🗑️ Novo</button>
 </div>
 
@@ -965,6 +1025,16 @@ function backupDrive() {
   }
   baixarArquivo(blob, nomeArquivo);
   alert('Arquivo baixado. Envie manualmente pro Google Drive pelo app de Arquivos ou pelo próprio Drive.');
+}
+
+// ── Modal de Ajuda / Funcionalidades ──
+function abrirAjuda() {
+  const modal = document.getElementById('modalAjuda');
+  if (modal) modal.style.display = 'flex';
+}
+function fecharAjuda() {
+  const modal = document.getElementById('modalAjuda');
+  if (modal) modal.style.display = 'none';
 }
 
 // ── PWA: Service Worker ──
@@ -1488,5 +1558,60 @@ function salvarFoto() {
   }, 400);
 }
 </script>
+<div id="modalAjuda" class="modal-ajuda-overlay" style="display:none;">
+  <div class="modal-ajuda-caixa">
+    <div class="modal-ajuda-header">
+      <h2>ℹ️ Funcionalidades do App</h2>
+      <button class="modal-ajuda-fechar" onclick="fecharAjuda()">✕</button>
+    </div>
+    <div class="modal-ajuda-corpo">
+
+      <h3>📋 Relatório e Produção</h3>
+      <ol>
+        <li>Registro de produção por máquina (18 máquinas: MS001–MS015, Rebitadeira, Robô, Montagem 1 e 2)</li>
+        <li>Botão "+" pra adicionar múltiplas peças na mesma máquina</li>
+        <li>Set Up automático (+1 sempre que adiciona uma peça nova)</li>
+        <li>Try Out</li>
+        <li>Total geral calculado automaticamente</li>
+        <li>Comparação com produção de ontem (% acima/abaixo)</li>
+        <li>Numeração sequencial do relatório (Nº 0001, 0002...)</li>
+        <li>Código de verificação único (CS-XXXX)</li>
+        <li>25 frases inspiradoras rotativas</li>
+      </ol>
+
+      <h3>👤 Operadores</h3>
+      <ol start="10">
+        <li>Campo Operador(a) com autocomplete (nomes cadastrados)</li>
+        <li>Campo Contenção (texto livre, todas as máquinas)</li>
+        <li>MS014/MS015 com 3 campos (Operador 1, Operador 2, Retrabalho)</li>
+        <li>Alerta de operador não preenchido antes de enviar</li>
+        <li>Relatório mensal de operadores (quantas vezes cada um apareceu por máquina)</li>
+        <li>Contador de contenções por máquina</li>
+        <li>Botão "Repetir operadores de ontem"</li>
+      </ol>
+
+      <h3>📤 Envio e Backup</h3>
+      <ol start="17">
+        <li>Envio direto pro WhatsApp (mensagem formatada)</li>
+        <li>Salvar como imagem (foto do relatório)</li>
+        <li>Modo Print (visual pra impressão)</li>
+        <li>Exportar CSV do dia</li>
+        <li>Backup manual (compartilhar/Google Drive)</li>
+        <li>Assinatura automática (nome + data/hora do envio)</li>
+      </ol>
+
+      <h3>⚙️ Sistema</h3>
+      <ol start="23">
+        <li>Autosave do rascunho (localStorage, por dia)</li>
+        <li>Senha de acesso</li>
+        <li>Marca d'água © CLAUDIO</li>
+        <li>PWA instalável, funciona offline (Service Worker)</li>
+      </ol>
+
+      <p class="modal-ajuda-rodape">App exclusivo criado por Claudio © — Relatório de Solda</p>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
