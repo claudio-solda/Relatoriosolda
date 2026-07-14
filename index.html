@@ -640,6 +640,8 @@
   <button class="btn-top btn-print" onclick="fazerPrint()">🖨️ Print</button>
   <button class="btn-top btn-foto" onclick="salvarFoto()">📸 Imagem</button>
   <button class="btn-top btn-whats" onclick="enviarWhatsApp()">🟢 WhatsApp</button>
+  <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="repetirOperadoresDeOntem()">🔁 Operadores de Ontem</button>
+  <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="mostrarRelatorioOperadores()">📊 Relatório Operadores</button>
   <button class="btn-top" style="background:#a33;color:#fff;" onclick="novoRelatorio()">🗑️ Novo</button>
 </div>
 
@@ -744,6 +746,143 @@ function compararComOntem(dataISO, totalHoje) {
   const variacao = ((totalHoje - totalOntem) / totalOntem) * 100;
   const seta = variacao >= 0 ? '🔼' : '🔽';
   return `${seta} ${Math.abs(variacao).toFixed(0)}% ${variacao >= 0 ? 'acima' : 'abaixo'} de ontem`;
+}
+
+// ── HISTÓRICO DE OPERADORES/CONTENÇÃO (por dia, por máquina) ──
+const HISTORICO_OPERADORES_KEY = 'solda_relatorio_historico_operadores';
+
+function salvarOperadoresDoDia(dataISO) {
+  let historico;
+  try {
+    historico = JSON.parse(localStorage.getItem(HISTORICO_OPERADORES_KEY)) || {};
+  } catch (e) { historico = {}; }
+  const doDia = {};
+  document.querySelectorAll('.maq-card').forEach((card, idx) => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || `maq_${idx}`;
+    const opRow = card.querySelector('.operador-row');
+    if (!opRow) return;
+    const operador   = opRow.querySelector('.operador-input')?.value || '';
+    const operador2  = opRow.querySelector('.operador2-input')?.value || '';
+    const retrabalho = opRow.querySelector('.retrabalho-input')?.value || '';
+    const contencao  = opRow.querySelector('.contencao-input')?.value || '';
+    if (operador || operador2 || retrabalho || contencao) {
+      doDia[idx] = { nome, operador, operador2, retrabalho, contencao };
+    }
+  });
+  historico[dataISO] = doDia;
+  localStorage.setItem(HISTORICO_OPERADORES_KEY, JSON.stringify(historico));
+}
+
+function getHistoricoOperadores() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORICO_OPERADORES_KEY)) || {};
+  } catch (e) { return {}; }
+}
+
+// ── FEATURE 2: Alerta de operador não preenchido ──
+function verificarOperadoresFaltando() {
+  const faltando = [];
+  document.querySelectorAll('.maq-card').forEach(card => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
+    let temPeca = false;
+    card.querySelectorAll('.maq-card-body .item-row').forEach(row => {
+      const peca = row.querySelector('.peca-input')?.value || '';
+      const qtd  = row.querySelector('.qtd-input')?.value || '';
+      if (peca || (qtd && qtd !== '0')) temPeca = true;
+    });
+    if (!temPeca) return;
+    const opRow = card.querySelector('.operador-row');
+    if (!opRow) return;
+    const operador  = opRow.querySelector('.operador-input')?.value || '';
+    const operador2 = opRow.querySelector('.operador2-input')?.value || '';
+    if (nome === 'MS014/MS015') {
+      if (!operador && !operador2) faltando.push(nome);
+    } else {
+      if (!operador) faltando.push(nome);
+    }
+  });
+  return faltando;
+}
+
+// ── FEATURE 5: Repetir operadores de ontem ──
+function repetirOperadoresDeOntem() {
+  const data = document.getElementById('dataInput').value;
+  if (!data) { alert('Selecione a data primeiro.'); return; }
+  const d = new Date(data);
+  d.setDate(d.getDate() - 1);
+  const ontemISO = d.toISOString().split('T')[0];
+  const historico = getHistoricoOperadores();
+  const doDia = historico[ontemISO];
+  if (!doDia || Object.keys(doDia).length === 0) {
+    alert(`Nenhum operador registrado em ${ontemISO.split('-').reverse().join('/')}.`);
+    return;
+  }
+  document.querySelectorAll('.maq-card').forEach((card, idx) => {
+    const dados = doDia[idx];
+    if (!dados) return;
+    const opRow = card.querySelector('.operador-row');
+    if (!opRow) return;
+    const opInput = opRow.querySelector('.operador-input');
+    const op2Input = opRow.querySelector('.operador2-input');
+    const retInput = opRow.querySelector('.retrabalho-input');
+    const contInput = opRow.querySelector('.contencao-input');
+    if (opInput && dados.operador) opInput.value = dados.operador;
+    if (op2Input && dados.operador2) op2Input.value = dados.operador2;
+    if (retInput && dados.retrabalho) retInput.value = dados.retrabalho;
+    if (contInput && dados.contencao) contInput.value = dados.contencao;
+  });
+  salvarEstado();
+  alert(`Operadores de ${ontemISO.split('-').reverse().join('/')} preenchidos. Confira e ajuste quem mudou.`);
+}
+
+// ── FEATURES 3 e 4: Relatório mensal de operadores + contador de contenções ──
+function mostrarRelatorioOperadores() {
+  const historico = getHistoricoOperadores();
+  const datas = Object.keys(historico).sort();
+  if (datas.length === 0) {
+    alert('Ainda não há histórico de operadores registrado.');
+    return;
+  }
+
+  // Contagem: operador -> maquina -> quantidade de dias
+  const contagemOperadores = {};
+  // Contagem: maquina -> quantidade de dias com contenção
+  const contagemContencoes = {};
+
+  datas.forEach(dataISO => {
+    const doDia = historico[dataISO];
+    Object.values(doDia).forEach(reg => {
+      const nomeMaq = reg.nome;
+      [reg.operador, reg.operador2].forEach(op => {
+        if (!op) return;
+        if (!contagemOperadores[op]) contagemOperadores[op] = {};
+        contagemOperadores[op][nomeMaq] = (contagemOperadores[op][nomeMaq] || 0) + 1;
+      });
+      if (reg.contencao) {
+        contagemContencoes[nomeMaq] = (contagemContencoes[nomeMaq] || 0) + 1;
+      }
+    });
+  });
+
+  let texto = `📊 RELATÓRIO DE OPERADORES\n(${datas.length} dia(s) registrado(s))\n\n`;
+  texto += `👤 POR OPERADOR(A):\n`;
+  Object.keys(contagemOperadores).sort().forEach(op => {
+    const maquinas = contagemOperadores[op];
+    const partes = Object.keys(maquinas).sort().map(m => `${m}: ${maquinas[m]}x`);
+    texto += `• ${op} — ${partes.join(', ')}\n`;
+  });
+
+  texto += `\n🦺 CONTENÇÕES POR MÁQUINA:\n`;
+  const maqsComContencao = Object.keys(contagemContencoes).sort();
+  if (maqsComContencao.length === 0) {
+    texto += `(nenhuma contenção registrada)\n`;
+  } else {
+    maqsComContencao.forEach(m => {
+      texto += `• ${m} — ${contagemContencoes[m]} dia(s)\n`;
+    });
+  }
+
+  alert(texto);
 }
 
 // ── PWA: Service Worker ──
@@ -1143,6 +1282,13 @@ function gerarCodigoVerificacao(semente) {
 function enviarWhatsApp() {
   calcularTotal();
   sincronizarSpans();
+
+  const faltando = verificarOperadoresFaltando();
+  if (faltando.length > 0) {
+    const continuar = confirm(`⚠️ Máquina(s) sem operador preenchido:\n${faltando.join(', ')}\n\nQuer enviar assim mesmo?`);
+    if (!continuar) return;
+  }
+
   const data = document.getElementById('dataInput').value || '';
   const partes = data.split('-');
   const dataFmt = partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : data;
@@ -1195,6 +1341,7 @@ function enviarWhatsApp() {
   const totalNum = parseFloat(total) || 0;
   const comparativo = compararComOntem(data, totalNum);
   salvarTotalDoDia(data, totalNum);
+  salvarOperadoresDoDia(data);
   const frase = fraseDoDia();
 
   const linhaTopo  = '🛡️⚙️🛡️⚙️🛡️⚙️🛡️⚙️🛡️⚙️';
