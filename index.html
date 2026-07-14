@@ -851,7 +851,17 @@ function criarCard(maq, idx) {
 
 function adicionarLinha(bodyId, idx) {
   document.getElementById(bodyId).appendChild(criarLinha(idx));
+  incrementarSetUp();
   salvarEstado();
+}
+
+function incrementarSetUp() {
+  const su = document.getElementById('setUpsInput');
+  if (!su) return;
+  const atual = parseInt(su.value, 10) || 0;
+  su.value = atual + 1;
+  sincronizarSpans();
+  if (typeof calcularTotal === 'function') calcularTotal();
 }
 
 const content = document.getElementById('mainContent');
