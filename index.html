@@ -642,6 +642,8 @@
   <button class="btn-top btn-whats" onclick="enviarWhatsApp()">🟢 WhatsApp</button>
   <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="repetirOperadoresDeOntem()">🔁 Operadores de Ontem</button>
   <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="mostrarRelatorioOperadores()">📊 Relatório Operadores</button>
+  <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="exportarCSV()">📄 CSV</button>
+  <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="backupDrive()">☁️ Backup</button>
   <button class="btn-top" style="background:#a33;color:#fff;" onclick="novoRelatorio()">🗑️ Novo</button>
 </div>
 
@@ -883,6 +885,86 @@ function mostrarRelatorioOperadores() {
   }
 
   alert(texto);
+}
+
+// ── Assinatura do envio ──
+function gerarAssinatura() {
+  const agora = new Date();
+  const dataHora = agora.toLocaleDateString('pt-BR') + ' ' +
+    agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  return `Claudio Roberto — enviado em ${dataHora}`;
+}
+
+// ── FEATURE: Exportar CSV do dia ──
+function exportarCSV() {
+  calcularTotal();
+  const data = document.getElementById('dataInput').value || '';
+  const turnoSelecionado = document.querySelector('input[name="turno"]:checked')?.value || '1º';
+
+  let linhasCSV = [['Data','Turno','Maquina','Peca','Quantidade','Obs','Operador','Operador2','Retrabalho','Contencao']];
+  document.querySelectorAll('.maq-card').forEach(card => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
+    const opRow = card.querySelector('.operador-row');
+    const operador   = opRow?.querySelector('.operador-input')?.value || '';
+    const operador2  = opRow?.querySelector('.operador2-input')?.value || '';
+    const retrabalho = opRow?.querySelector('.retrabalho-input')?.value || '';
+    const contencao  = opRow?.querySelector('.contencao-input')?.value || '';
+    card.querySelectorAll('.maq-card-body .item-row').forEach(row => {
+      const peca = row.querySelector('.peca-input')?.value || '';
+      const qtd  = row.querySelector('.qtd-input')?.value || '';
+      const obs  = row.querySelector('.obs-input')?.value || '';
+      if (peca || (qtd && qtd !== '0')) {
+        linhasCSV.push([data, turnoSelecionado, nome, peca, qtd, obs, operador, operador2, retrabalho, contencao]);
+      }
+    });
+  });
+
+  const csvContent = linhasCSV.map(linha =>
+    linha.map(campo => `"${String(campo).replace(/"/g,'""')}"`).join(';')
+  ).join('\n');
+
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const nomeArquivo = `relatorio_solda_${data || 'sem-data'}.csv`;
+
+  if (navigator.share && navigator.canShare) {
+    const file = new File([blob], nomeArquivo, { type: 'text/csv' });
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Relatório de Solda CSV' }).catch(() => baixarArquivo(blob, nomeArquivo));
+      return;
+    }
+  }
+  baixarArquivo(blob, nomeArquivo);
+}
+
+function baixarArquivo(blob, nomeArquivo) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ── FEATURE: Backup manual (compartilha um JSON com o rascunho do dia) ──
+function backupDrive() {
+  salvarEstado();
+  const dados = coletarEstado();
+  const data = document.getElementById('dataInput').value || 'sem-data';
+  const json = JSON.stringify(dados, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const nomeArquivo = `backup_solda_${data}.json`;
+
+  if (navigator.share && navigator.canShare) {
+    const file = new File([blob], nomeArquivo, { type: 'application/json' });
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Backup Relatório de Solda' })
+        .then(() => alert('Compartilhado! Escolha o Google Drive na lista pra salvar.'))
+        .catch(() => baixarArquivo(blob, nomeArquivo));
+      return;
+    }
+  }
+  baixarArquivo(blob, nomeArquivo);
+  alert('Arquivo baixado. Envie manualmente pro Google Drive pelo app de Arquivos ou pelo próprio Drive.');
 }
 
 // ── PWA: Service Worker ──
@@ -1361,6 +1443,7 @@ function enviarWhatsApp() {
   msg += `\n\n🔐 *Cód. de verificação: ${codigo}*`;
   msg += `\n\n_"${frase}"_`;
   msg += `\n_App exclusivo criado por Claudio © — Relatório de Solda_`;
+  msg += `\n${gerarAssinatura()}`;
 
   const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
   window.open(url, '_blank');
