@@ -284,7 +284,7 @@
     gap: 6px;
   }
 
-  .item-row {
+  .item-row, .operador-fields-row {
     display: flex;
     gap: 6px;
     align-items: flex-end;
@@ -322,6 +322,15 @@
     background: white;
   }
   .field-group input::placeholder { color: #b0bec8; }
+
+  .operador-row {
+    padding: 8px 10px 0 10px;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 2px;
+  }
+  .operador-row .field-group label { color: var(--accent); }
+  .operador-row .field-group input { font-size: 0.95rem; font-weight: 600; }
 
   .field-group .val-span {
     display: none;
@@ -834,6 +843,57 @@ function criarLinha(maqId) {
   return row;
 }
 
+const operadoresLista = [
+  "Ingrid","Gustavo","Márcio","Bento","João Vitor","Simonia","Silvio Jose",
+  "Silvio Fernandes","Silvana","Alex Grimek","Carlos","Matheus","Everton",
+  "Willian","Francisco Lino","João Lima","Andre","Júlio Cesar","Anderson Rodrigo",
+  "Lucas","Gilmar","Rodrigo Ferreira","Claudio Roberto"
+];
+
+(function criarDatalistOperadores() {
+  const dl = document.createElement('datalist');
+  dl.id = 'operadoresList';
+  dl.innerHTML = operadoresLista.map(n => `<option value="${n}">`).join('');
+  document.body.appendChild(dl);
+})();
+
+function criarOperadorRow(maq) {
+  const row = document.createElement('div');
+  row.className = 'operador-row';
+  if (maq === 'MS014/MS015') {
+    row.innerHTML = `
+      <div class="operador-fields-row">
+        <div class="field-group">
+          <label>Operador 1</label>
+          <input type="text" class="operador-input" list="operadoresList" placeholder="Nome" onchange="salvarEstado()">
+        </div>
+        <div class="field-group">
+          <label>Operador 2</label>
+          <input type="text" class="operador2-input" list="operadoresList" placeholder="Nome" onchange="salvarEstado()">
+        </div>
+        <div class="field-group">
+          <label>Retrabalho</label>
+          <input type="text" class="retrabalho-input" placeholder="Nome (manual)" onchange="salvarEstado()">
+        </div>
+      </div>
+    `;
+  } else {
+    row.innerHTML = `
+      <div class="operador-fields-row">
+        <div class="field-group">
+          <label>Operador(a)</label>
+          <input type="text" class="operador-input" list="operadoresList" placeholder="Nome" onchange="salvarEstado()">
+        </div>
+        <div class="field-group">
+          <label>Contenção</label>
+          <input type="text" class="contencao-input" placeholder="Se houver" onchange="salvarEstado()">
+        </div>
+      </div>
+    `;
+  }
+  return row;
+}
+
 function criarCard(maq, idx) {
   const card = document.createElement('div');
   card.className = 'maq-card';
@@ -845,6 +905,7 @@ function criarCard(maq, idx) {
   body.id = `body_${idx}`;
   body.appendChild(criarLinha(idx));
   card.appendChild(header);
+  card.appendChild(criarOperadorRow(maq));
   card.appendChild(body);
   return card;
 }
@@ -908,9 +969,10 @@ let salvarTimeout = null;
 
 function coletarEstado() {
   const estado = { data: document.getElementById('dataInput').value, turno: document.querySelector('input[name="turno"]:checked')?.value || '1º', setups: document.getElementById('setUpsInput')?.value || '', tryouts: document.getElementById('tryOutInput')?.value || '', maquinas: {} };
+  estado.operadores = {};
   document.querySelectorAll('.maq-card').forEach((card, idx) => {
     const linhas = [];
-    card.querySelectorAll('.item-row').forEach(row => {
+    card.querySelectorAll('.maq-card-body .item-row').forEach(row => {
       linhas.push({
         peca: row.querySelector('.peca-input')?.value || '',
         qtd: row.querySelector('.qtd-input')?.value || '',
@@ -918,6 +980,16 @@ function coletarEstado() {
       });
     });
     estado.maquinas[idx] = linhas;
+
+    const opRow = card.querySelector('.operador-row');
+    if (opRow) {
+      estado.operadores[idx] = {
+        operador: opRow.querySelector('.operador-input')?.value || '',
+        operador2: opRow.querySelector('.operador2-input')?.value || '',
+        retrabalho: opRow.querySelector('.retrabalho-input')?.value || '',
+        contencao: opRow.querySelector('.contencao-input')?.value || ''
+      };
+    }
   });
   return estado;
 }
@@ -979,6 +1051,21 @@ function restaurarEstado() {
       row.querySelector('.qtd-input').value = dados.qtd || '';
       row.querySelector('.obs-input').value = dados.obs || '';
     });
+  });
+
+  Object.keys(salvo.operadores || {}).forEach(idx => {
+    const dados = salvo.operadores[idx];
+    const card = document.querySelectorAll('.maq-card')[idx];
+    const opRow = card?.querySelector('.operador-row');
+    if (!opRow || !dados) return;
+    const opInput = opRow.querySelector('.operador-input');
+    const op2Input = opRow.querySelector('.operador2-input');
+    const retInput = opRow.querySelector('.retrabalho-input');
+    const contInput = opRow.querySelector('.contencao-input');
+    if (opInput) opInput.value = dados.operador || '';
+    if (op2Input) op2Input.value = dados.operador2 || '';
+    if (retInput) retInput.value = dados.retrabalho || '';
+    if (contInput) contInput.value = dados.contencao || '';
   });
 
   calcularTotal();
@@ -1067,7 +1154,7 @@ function enviarWhatsApp() {
   document.querySelectorAll('.maq-card').forEach(card => {
     const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
     let cardTemDados = false;
-    card.querySelectorAll('.item-row').forEach(row => {
+    card.querySelectorAll('.maq-card-body .item-row').forEach(row => {
       const peca = row.querySelector('.peca-input')?.value || '';
       const qtd  = row.querySelector('.qtd-input')?.value || '';
       const obs  = row.querySelector('.obs-input')?.value || '';
@@ -1076,7 +1163,22 @@ function enviarWhatsApp() {
         cardTemDados = true;
       }
     });
-    if (cardTemDados) maquinasAtivas++;
+    if (cardTemDados) {
+      maquinasAtivas++;
+      const opRow = card.querySelector('.operador-row');
+      if (opRow) {
+        const operador   = opRow.querySelector('.operador-input')?.value || '';
+        const operador2  = opRow.querySelector('.operador2-input')?.value || '';
+        const retrabalho = opRow.querySelector('.retrabalho-input')?.value || '';
+        const contencao  = opRow.querySelector('.contencao-input')?.value || '';
+        const partesEquipe = [];
+        if (operador) partesEquipe.push(`👤 ${operador}`);
+        if (operador2) partesEquipe.push(`👤 ${operador2}`);
+        if (retrabalho) partesEquipe.push(`🔁 Retrabalho: ${retrabalho}`);
+        if (contencao) partesEquipe.push(`🦺 Contenção: ${contencao}`);
+        if (partesEquipe.length > 0) linhas.push(`    ${partesEquipe.join(' | ')}`);
+      }
+    }
   });
 
   const total = document.getElementById('totalDisplay')?.textContent || '0';
