@@ -1,0 +1,1657 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a2e4a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Solda App">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Claudio Solda — Relatório</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
+
+  :root {
+    --navy: #1a2e4a;
+    --blue: #1e3a6e;
+    --accent: #2e5fa3;
+    --light: #f4f7fb;
+    --white: #ffffff;
+    --red: #e74c3c;
+    --green: #27ae60;
+    --border: #d0dce8;
+    --text: #1a2e4a;
+    --muted: #8a9bb0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: #e8eef5;
+    min-height: 100vh;
+    padding: 0 0 env(safe-area-inset-bottom, 20px);
+    padding-bottom: max(40px, env(safe-area-inset-bottom));
+  }
+
+  /* ── BANNER INSTALAR PWA ── */
+  #installBanner {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--navy);
+    color: white;
+    padding: 12px 16px 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 9999;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 -3px 16px rgba(0,0,0,0.25);
+  }
+  #installBanner.show { display: flex; }
+  #installBanner p { flex: 1; font-size: 0.85rem; line-height: 1.3; }
+  #installBanner p strong { display: block; font-size: 0.95rem; }
+  #installBanner button {
+    border: none; border-radius: 8px; padding: 9px 16px;
+    font-weight: 700; cursor: pointer; font-family: 'Barlow', sans-serif;
+    font-size: 0.82rem; white-space: nowrap;
+  }
+  #btnInstalar { background: #4a90d9; color: white; }
+  #btnFecharBanner { background: rgba(255,255,255,0.15); color: white; }
+
+  /* ── TOAST OFFLINE ── */
+  #toastOffline {
+    display: none;
+    position: fixed;
+    top: 12px; left: 50%; transform: translateX(-50%);
+    background: #e74c3c;
+    color: white;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    z-index: 9998;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+    animation: fadeIn 0.3s ease;
+  }
+  #toastOffline.show { display: block; }
+  #toastOnline {
+    display: none;
+    position: fixed;
+    top: 12px; left: 50%; transform: translateX(-50%);
+    background: #27ae60;
+    color: white;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    z-index: 9998;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+    animation: fadeIn 0.3s ease;
+  }
+  #toastOnline.show { display: block; }
+  @keyframes fadeIn { from { opacity:0; top:4px } to { opacity:1; top:12px } }
+
+  .header {
+    background: var(--navy);
+    padding: 22px 20px 18px;
+    padding-top: max(22px, env(safe-area-inset-top));
+    text-align: center;
+  }
+  .header h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .header h1 .gear { margin-right: 8px; color: #4a90d9; }
+  .header p {
+    color: #8aaac8;
+    font-size: 0.78rem;
+    margin-top: 3px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .header .data-topo {
+    color: #fff;
+    font-size: 0.85rem;
+    margin-top: 6px;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .top-bar {
+    background: var(--white);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid var(--border);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .top-bar label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .top-bar input[type="date"] {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.88rem;
+    font-family: 'Barlow', sans-serif;
+    color: var(--text);
+    background: var(--light);
+    outline: none;
+  }
+  .btn-top {
+    border: none;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Barlow', sans-serif;
+    transition: opacity 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-top:hover { opacity: 0.85; }
+  .btn-top:active { transform: scale(0.96); }
+
+  .turno-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--light);
+    border-bottom: 1.5px solid var(--border);
+  }
+  .turno-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .turno-opcoes {
+    display: flex;
+    gap: 16px;
+  }
+  .turno-opt {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .turno-opt input[type="radio"] {
+    display: none;
+  }
+  .turno-bolinha {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: white;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .turno-opt input[type="radio"]:checked + .turno-bolinha {
+    border-color: var(--accent);
+  }
+  .turno-opt input[type="radio"]:checked + .turno-bolinha::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .turno-txt {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .btn-total { background: var(--accent); color: white; }
+  .btn-print { background: #555; color: white; }
+  .btn-foto { background: var(--green); color: white; margin-left: auto; }
+  .btn-whats { background: #25D366; color: white; }
+
+  .content {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .maq-card {
+    background: var(--white);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1.5px solid var(--border);
+  }
+  .maq-card-header {
+    background: var(--blue);
+    padding: 9px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .maq-card-header h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .btn-plus {
+    background: rgba(255,255,255,0.18);
+    border: 1.5px solid rgba(255,255,255,0.4);
+    color: white;
+    border-radius: 7px;
+    width: 28px; height: 28px;
+    font-size: 1.1rem;
+    line-height: 26px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-plus:hover { background: rgba(255,255,255,0.3); }
+
+  .maq-card-body {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .item-row, .operador-fields-row {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+  }
+  .peca-bloco {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .peca-bloco:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .peca-contencao-row {
+    display: flex;
+    gap: 6px;
+  }
+  .peca-contencao-row .field-group input { font-size: 0.9rem; font-weight: 600; }
+  .peca-contencao-row .field-group label { color: var(--accent); }
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+  .field-group.qty { flex: 0 0 80px; }
+  .field-group.obs { flex: 0 0 100px; }
+  .field-group label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .field-group input {
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 8px 8px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    font-family: 'Barlow', sans-serif;
+    color: var(--text);
+    background: var(--light);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  .field-group input:focus {
+    border-color: var(--accent);
+    background: white;
+  }
+  .field-group input::placeholder { color: #b0bec8; }
+
+  .operador-row {
+    padding: 8px 10px 0 10px;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 2px;
+  }
+  .operador-row .field-group label { color: var(--accent); }
+  .operador-row .field-group input { font-size: 0.95rem; font-weight: 600; }
+
+  .field-group .val-span {
+    display: none;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 8px;
+    font-size: 0.88rem;
+    font-family: 'Barlow', sans-serif;
+    color: var(--text);
+    background: var(--light);
+    min-height: 34px;
+    width: 100%;
+  }
+
+  .btn-remove {
+    background: #fde8e8;
+    border: 1.5px solid #f5bcbc;
+    color: var(--red);
+    border-radius: 7px;
+    width: 32px; height: 32px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-remove:hover { background: #f5bcbc; }
+
+  .totais-card {
+    background: var(--white);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1.5px solid var(--border);
+  }
+  .totais-header {
+    background: var(--navy);
+    padding: 9px 14px;
+  }
+  .totais-header h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .totais-body {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .total-row-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .total-row-item label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    width: 100px;
+    flex-shrink: 0;
+  }
+  .total-row-item input {
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    font-family: 'Barlow', sans-serif;
+    color: var(--text);
+    background: var(--light);
+    outline: none;
+    width: 100px;
+    text-align: center;
+    font-weight: 700;
+  }
+  .total-row-item input:focus { border-color: var(--accent); background: white; }
+  .total-row-item .val-span {
+    display: none;
+    border: 1.5px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    font-family: 'Barlow', sans-serif;
+    color: var(--text);
+    background: var(--light);
+    width: 100px;
+    text-align: center;
+    font-weight: 700;
+    min-height: 32px;
+  }
+  .total-display {
+    background: var(--navy);
+    color: white;
+    border-radius: 7px;
+    padding: 6px 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    min-width: 80px;
+    text-align: center;
+  }
+
+  /* ── MODO FOTO ── */
+  body.modo-foto .top-bar { display: none !important; }
+  body.modo-foto #installBanner { display: none !important; }
+  body.modo-foto .btn-plus { display: none !important; }
+  body.modo-foto .btn-remove { display: none !important; }
+  body.modo-foto .field-group input { display: none !important; }
+  body.modo-foto .field-group .val-span { display: block !important; }
+  body.modo-foto .total-row-item input { display: none !important; }
+  body.modo-foto .total-row-item .val-span { display: inline-block !important; }
+
+  @media print {
+    @page { margin: 5mm; size: A4 portrait; }
+    html, body { background: white !important; padding: 0 !important; }
+    .top-bar { display: none !important; }
+    #installBanner, #toastOffline, #toastOnline { display: none !important; }
+    .btn-plus, .btn-remove { display: none !important; }
+    .content { padding: 4px !important; gap: 4px !important; max-width: 100% !important; }
+    .maq-card { break-inside: avoid !important; box-shadow: none !important; border: 1px solid #aaa !important; }
+    .maq-card-header { padding: 5px 10px !important; }
+    .maq-card-header h3 { font-size: 0.82rem !important; }
+    .maq-card-body { padding: 4px 8px !important; gap: 3px !important; }
+    .field-group label { font-size: 0.6rem !important; }
+    .field-group input { display: none !important; }
+    .field-group .val-span { display: block !important; padding: 4px 6px !important; font-size: 0.78rem !important; border: 1px solid #aaa !important; background: white !important; min-height: 26px !important; }
+    .total-row-item input { display: none !important; }
+    .total-row-item .val-span { display: inline-block !important; padding: 4px 8px !important; font-size: 0.78rem !important; border: 1px solid #aaa !important; background: white !important; }
+    .totais-card { break-inside: avoid !important; box-shadow: none !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+  .modal-ajuda-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 999;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-ajuda-caixa {
+    background: var(--white);
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    border-radius: 16px 16px 0 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-ajuda-header {
+    position: sticky;
+    top: 0;
+    background: var(--navy);
+    color: var(--white);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 1;
+  }
+  .modal-ajuda-header h2 { font-size: 1.05rem; }
+  .modal-ajuda-fechar {
+    background: none;
+    border: none;
+    color: var(--white);
+    font-size: 1.2rem;
+    padding: 4px 10px;
+  }
+  .modal-ajuda-corpo { padding: 14px 18px 24px 18px; }
+  .modal-ajuda-corpo h3 {
+    color: var(--accent);
+    font-size: 0.95rem;
+    margin: 16px 0 6px 0;
+  }
+  .modal-ajuda-corpo h3:first-child { margin-top: 0; }
+  .modal-ajuda-corpo ol {
+    padding-left: 20px;
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .modal-ajuda-corpo li { margin-bottom: 4px; }
+  .modal-ajuda-rodape {
+    margin-top: 18px;
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-align: center;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+<!-- LOCK SCREEN (digital + senha) -->
+<div id="lockScreen999" style="position:fixed;inset:0;background:linear-gradient(135deg,#1a2e4a,#0f172a);color:#fff;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:-apple-system,Segoe UI,Roboto,sans-serif;text-align:center;padding:24px;">
+  <div style="font-size:44px;">🔒</div>
+  <div style="font-weight:700;font-size:18px;">Relatório Solda</div>
+
+  <div id="digitalArea999" style="display:none; flex-direction:column; align-items:center; gap:12px;">
+    <div id="digitalMsg999" style="font-size:13px; color:#dbe4f5; max-width:250px;">Carregando...</div>
+    <button id="digitalBtn999" type="button" style="padding:13px 28px;font-size:15px;border-radius:12px;border:none;background:#3b82f6;color:#fff;font-weight:700;cursor:pointer;">Usar digital</button>
+    <button id="switchToPwBtn999" type="button" style="background:transparent;color:#cbd5e1;font-size:12px;border:1px solid rgba(255,255,255,.3);padding:8px 14px;border-radius:10px;cursor:pointer;">Usar senha</button>
+  </div>
+
+  <div id="pwArea999" style="display:none; flex-direction:column; align-items:center; gap:12px;">
+    <input type="password" id="pwInput999" placeholder="Senha" style="width:200px;text-align:center;font-size:16px;letter-spacing:2px;padding:11px;border-radius:10px;border:none;">
+    <div id="lockErr999" style="font-size:12px;color:#ffd6d6;height:14px;"></div>
+    <button id="pwEnterBtn999" type="button" style="padding:12px 26px;border-radius:10px;border:none;background:#fff;color:#111;font-weight:700;cursor:pointer;">Entrar</button>
+    <button id="switchToDigitalBtn999" type="button" style="display:none;background:transparent;color:#cbd5e1;font-size:12px;border:1px solid rgba(255,255,255,.3);padding:8px 14px;border-radius:10px;cursor:pointer;">Usar digital</button>
+  </div>
+</div>
+<script>
+(function(){
+  var PASSWORD = 'Cacau249';
+  var DIGITAL_KEY = 'claudio_relatorio_digital_cred_id';
+  var lockScreen = document.getElementById('lockScreen999');
+  var digitalArea = document.getElementById('digitalArea999');
+  var pwArea = document.getElementById('pwArea999');
+  var digMsg = document.getElementById('digitalMsg999');
+  var digBtn = document.getElementById('digitalBtn999');
+  var pwInput = document.getElementById('pwInput999');
+  var lockErr = document.getElementById('lockErr999');
+
+  function unlockApp999(){ lockScreen.style.display = 'none'; }
+
+  function showPwMode(){
+    digitalArea.style.display = 'none';
+    pwArea.style.display = 'flex';
+    document.getElementById('switchToDigitalBtn999').style.display = localStorage.getItem(DIGITAL_KEY) ? 'block' : 'none';
+    pwInput.focus();
+  }
+  function showDigitalMode(){
+    pwArea.style.display = 'none';
+    digitalArea.style.display = 'flex';
+  }
+  document.getElementById('switchToPwBtn999').addEventListener('click', showPwMode);
+  document.getElementById('switchToDigitalBtn999').addEventListener('click', showDigitalMode);
+
+  function tryUnlock999(){
+    if (pwInput.value === PASSWORD){ unlockApp999(); }
+    else { lockErr.textContent = 'Senha incorreta'; }
+  }
+  document.getElementById('pwEnterBtn999').addEventListener('click', tryUnlock999);
+  pwInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') tryUnlock999(); });
+
+  function b64urlToBuf(b64url){
+    var b64 = b64url.replace(/-/g,'+').replace(/_/g,'/');
+    var pad = b64.length % 4 === 0 ? '' : '='.repeat(4 - (b64.length % 4));
+    var bin = atob(b64+pad);
+    var buf = new Uint8Array(bin.length);
+    for (var i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+    return buf;
+  }
+  function bufToB64url(buf){
+    var bin=''; var bytes = new Uint8Array(buf);
+    for (var i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+    return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  }
+
+  function digitalRegister(){
+    try{
+      digMsg.textContent = 'Cadastrando sua digital...';
+      var challenge = crypto.getRandomValues(new Uint8Array(32));
+      var userId = crypto.getRandomValues(new Uint8Array(16));
+      navigator.credentials.create({
+        publicKey: {
+          challenge: challenge,
+          rp: { name: 'Relatório Solda' },
+          user: { id: userId, name: 'claudio', displayName: 'Claudio' },
+          pubKeyCredParams: [{alg:-7,type:'public-key'},{alg:-257,type:'public-key'}],
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+          timeout: 60000,
+          attestation: 'none'
+        }
+      }).then(function(cred){
+        localStorage.setItem(DIGITAL_KEY, bufToB64url(cred.rawId));
+        unlockApp999();
+      }).catch(function(e){
+        digMsg.textContent = 'Não deu pra cadastrar a digital. Toque em "Usar senha".';
+        console.error(e);
+      });
+    }catch(e){
+      digMsg.textContent = 'Digital não disponível aqui. Toque em "Usar senha".';
+    }
+  }
+
+  function digitalAuthenticate(credId){
+    try{
+      digMsg.textContent = 'Toque no sensor de digital...';
+      var challenge = crypto.getRandomValues(new Uint8Array(32));
+      navigator.credentials.get({
+        publicKey: {
+          challenge: challenge,
+          allowCredentials: [{ id: b64urlToBuf(credId), type: 'public-key' }],
+          userVerification: 'required',
+          timeout: 60000
+        }
+      }).then(function(){ unlockApp999(); })
+      .catch(function(e){
+        digMsg.textContent = 'Digital não reconhecida. Toque em "Usar senha".';
+        console.error(e);
+      });
+    }catch(e){
+      digMsg.textContent = 'Digital não disponível aqui. Toque em "Usar senha".';
+    }
+  }
+
+  function initDigital(){
+    try{
+      if (!window.PublicKeyCredential || !navigator.credentials){
+        showPwMode();
+        return;
+      }
+      var credId = localStorage.getItem(DIGITAL_KEY);
+      showDigitalMode();
+      if (credId){
+        digMsg.textContent = 'Toque para desbloquear com sua digital';
+        digBtn.textContent = 'Usar digital';
+        digBtn.onclick = function(){ digitalAuthenticate(credId); };
+      } else {
+        digMsg.textContent = 'Cadastre sua digital para agilizar o acesso';
+        digBtn.textContent = 'Cadastrar digital';
+        digBtn.onclick = digitalRegister;
+      }
+    }catch(e){
+      showPwMode();
+    }
+  }
+  window.addEventListener('error', showPwMode);
+  initDigital();
+})();
+</script>
+<!-- FIM LOCK SCREEN -->
+
+
+
+<!-- TOAST OFFLINE / ONLINE -->
+<div id="toastOffline">📴 Sem internet — modo offline</div>
+<div id="toastOnline">✅ Conexão restaurada</div>
+
+<!-- BANNER INSTALAR -->
+<div id="installBanner">
+  <p><strong>📲 Instalar Solda App</strong>Adicionar à tela inicial para usar offline</p>
+  <button id="btnInstalar">Instalar</button>
+  <button id="btnFecharBanner">✕</button>
+</div>
+
+<div class="header" id="cabecalho">
+  <h1><span class="gear">⚙</span>Claudio Solda</h1>
+  <p>Relatório Diário da Solda</p>
+  <div class="data-topo" id="dataTopo"></div>
+</div>
+
+<div class="top-bar">
+  <label>Data</label>
+  <input type="date" id="dataInput">
+  <span id="salvoIndicador" style="font-size:0.68rem;color:var(--muted);font-weight:600;">💾 —</span>
+  <button class="btn-top btn-total" onclick="calcularTotal()">✔ Total</button>
+  <button class="btn-top btn-print" onclick="fazerPrint()">🖨️ Print</button>
+  <button class="btn-top btn-foto" onclick="salvarFoto()">📸 Imagem</button>
+  <button class="btn-top btn-whats" onclick="enviarWhatsApp()">🟢 WhatsApp</button>
+  <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="repetirOperadoresDeOntem()">🔁 Operadores de Ontem</button>
+  <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="mostrarRelatorioOperadores()">📊 Relatório Operadores</button>
+  <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="exportarCSV()">📄 CSV</button>
+  <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="backupDrive()">☁️ Backup</button>
+  <button class="btn-top" style="background:#6a5b9c;color:#fff;" onclick="abrirAjuda()">ℹ️ Ajuda</button>
+  <button class="btn-top" style="background:#a33;color:#fff;" onclick="novoRelatorio()">🗑️ Novo</button>
+</div>
+
+<div class="turno-bar" id="turnoBar">
+  <label class="turno-label">Turno</label>
+  <div class="turno-opcoes">
+    <label class="turno-opt">
+      <input type="radio" name="turno" value="1º" checked>
+      <span class="turno-bolinha"></span>
+      <span class="turno-txt">1º</span>
+    </label>
+    <label class="turno-opt">
+      <input type="radio" name="turno" value="2º">
+      <span class="turno-bolinha"></span>
+      <span class="turno-txt">2º</span>
+    </label>
+    <label class="turno-opt">
+      <input type="radio" name="turno" value="3º">
+      <span class="turno-bolinha"></span>
+      <span class="turno-txt">3º</span>
+    </label>
+  </div>
+</div>
+
+<div class="content" id="mainContent"></div>
+
+<script>
+// ── FRASES ROTATIVAS (uma por dia, sem repetir por 25 dias) ──
+const FRASES_RODAPE = [
+  "Ninguém constrói nada sozinho... seja ponte, não muro.",
+  "Quem constrói pontes atravessa junto; quem constrói muros fica sozinho do outro lado.",
+  "Toda obra que dura foi levantada por mãos que se ajudaram.",
+  "Ser ponte é escolher todo dia; ser muro é só deixar acontecer.",
+  "O que te feriu não precisa te definir — você pode escolher construir.",
+  "Deus não dorme, e o que Ele começa em você, Ele termina.",
+  "Uma ponte não esconde o rio, ela ensina a atravessá-lo.",
+  "Grandes obras começam com pequenos gestos de quem decide ajudar.",
+  "Não existe equipe forte onde cada um constrói seu próprio muro.",
+  "A força de um time não está na perfeição, está na união.",
+  "Quem planta pontes colhe caminhos; quem planta muros colhe solidão.",
+  "Cada dia é uma nova chance de ser ponte pra alguém.",
+  "O trabalho bem feito de hoje é o alicerce da confiança de amanhã.",
+  "Ninguém chega longe carregando muro nas costas.",
+  "A fé move o que a força sozinha não consegue erguer.",
+  "Servir é a ponte mais forte que existe entre pessoas.",
+  "Onde há união, o impossível vira só mais um dia de trabalho.",
+  "Construir é coisa de quem acredita antes de ver o resultado.",
+  "O bom exemplo constrói pontes que nem palavras alcançam.",
+  "Quem ergue o outro também se ergue junto.",
+  "A verdadeira liderança é ponte: sustenta, não separa.",
+  "Firmeza não é dureza; é constância pra sustentar quem precisa.",
+  "O que parece pequeno hoje pode ser a base de algo grande amanhã.",
+  "Ninguém atravessa sozinho — por isso a ponte existe.",
+  "Fé e trabalho juntos constroem o que o tempo não derruba."
+];
+
+function fraseDoDia() {
+  const hoje = new Date();
+  const inicioAno = new Date(hoje.getFullYear(), 0, 0);
+  const diff = hoje - inicioAno;
+  const diaDoAno = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const idx = diaDoAno % FRASES_RODAPE.length;
+  return FRASES_RODAPE[idx];
+}
+
+// ── CONTADOR SEQUENCIAL DE RELATÓRIOS ──
+const CONTADOR_KEY = 'solda_relatorio_contador_seq';
+
+function proximoNumeroRelatorio() {
+  let n = parseInt(localStorage.getItem(CONTADOR_KEY) || '0', 10);
+  n += 1;
+  localStorage.setItem(CONTADOR_KEY, String(n));
+  return n;
+}
+
+function numeroRelatorioAtual() {
+  return parseInt(localStorage.getItem(CONTADOR_KEY) || '0', 10);
+}
+
+// ── COMPARAÇÃO COM O DIA ANTERIOR ──
+const HISTORICO_TOTAL_KEY = 'solda_relatorio_historico_totais';
+
+function salvarTotalDoDia(dataISO, total) {
+  let historico;
+  try {
+    historico = JSON.parse(localStorage.getItem(HISTORICO_TOTAL_KEY)) || {};
+  } catch (e) { historico = {}; }
+  historico[dataISO] = total;
+  localStorage.setItem(HISTORICO_TOTAL_KEY, JSON.stringify(historico));
+}
+
+function compararComOntem(dataISO, totalHoje) {
+  let historico;
+  try {
+    historico = JSON.parse(localStorage.getItem(HISTORICO_TOTAL_KEY)) || {};
+  } catch (e) { historico = {}; }
+  const d = new Date(dataISO);
+  d.setDate(d.getDate() - 1);
+  const ontemISO = d.toISOString().split('T')[0];
+  const totalOntem = historico[ontemISO];
+  if (totalOntem === undefined || totalOntem === 0) return null;
+  const variacao = ((totalHoje - totalOntem) / totalOntem) * 100;
+  const seta = variacao >= 0 ? '🔼' : '🔽';
+  return `${seta} ${Math.abs(variacao).toFixed(0)}% ${variacao >= 0 ? 'acima' : 'abaixo'} de ontem`;
+}
+
+// ── HISTÓRICO DE OPERADORES/CONTENÇÃO (por dia, por máquina) ──
+const HISTORICO_OPERADORES_KEY = 'solda_relatorio_historico_operadores';
+
+function salvarOperadoresDoDia(dataISO) {
+  let historico;
+  try {
+    historico = JSON.parse(localStorage.getItem(HISTORICO_OPERADORES_KEY)) || {};
+  } catch (e) { historico = {}; }
+  const doDia = {};
+  document.querySelectorAll('.maq-card').forEach((card, idx) => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || `maq_${idx}`;
+    const opRow = card.querySelector('.operador-row');
+    if (!opRow) return;
+    const operador   = opRow.querySelector('.operador-input')?.value || '';
+    const operador2  = opRow.querySelector('.operador2-input')?.value || '';
+    const retrabalho = opRow.querySelector('.retrabalho-input')?.value || '';
+    const contencoes = Array.from(card.querySelectorAll('.contencao-item-input'))
+      .map(i => i.value || '')
+      .filter(v => v);
+    if (operador || operador2 || retrabalho || contencoes.length > 0) {
+      doDia[idx] = { nome, operador, operador2, retrabalho, contencoes };
+    }
+  });
+  historico[dataISO] = doDia;
+  localStorage.setItem(HISTORICO_OPERADORES_KEY, JSON.stringify(historico));
+}
+
+function getHistoricoOperadores() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORICO_OPERADORES_KEY)) || {};
+  } catch (e) { return {}; }
+}
+
+// ── FEATURE 2: Alerta de operador não preenchido ──
+function verificarOperadoresFaltando() {
+  const faltando = [];
+  document.querySelectorAll('.maq-card').forEach(card => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
+    let temPeca = false;
+    card.querySelectorAll('.maq-card-body .item-row').forEach(row => {
+      const peca = row.querySelector('.peca-input')?.value || '';
+      const qtd  = row.querySelector('.qtd-input')?.value || '';
+      if (peca || (qtd && qtd !== '0')) temPeca = true;
+    });
+    if (!temPeca) return;
+    const opRow = card.querySelector('.operador-row');
+    if (!opRow) return;
+    const operador  = opRow.querySelector('.operador-input')?.value || '';
+    const operador2 = opRow.querySelector('.operador2-input')?.value || '';
+    if (nome === 'MS014/MS015') {
+      if (!operador && !operador2) faltando.push(nome);
+    } else {
+      if (!operador) faltando.push(nome);
+    }
+  });
+  return faltando;
+}
+
+// ── FEATURE 5: Repetir operadores de ontem ──
+function repetirOperadoresDeOntem() {
+  const data = document.getElementById('dataInput').value;
+  if (!data) { alert('Selecione a data primeiro.'); return; }
+  const d = new Date(data);
+  d.setDate(d.getDate() - 1);
+  const ontemISO = d.toISOString().split('T')[0];
+  const historico = getHistoricoOperadores();
+  const doDia = historico[ontemISO];
+  if (!doDia || Object.keys(doDia).length === 0) {
+    alert(`Nenhum operador registrado em ${ontemISO.split('-').reverse().join('/')}.`);
+    return;
+  }
+  document.querySelectorAll('.maq-card').forEach((card, idx) => {
+    const dados = doDia[idx];
+    if (!dados) return;
+    const opRow = card.querySelector('.operador-row');
+    if (!opRow) return;
+    const opInput = opRow.querySelector('.operador-input');
+    const op2Input = opRow.querySelector('.operador2-input');
+    const retInput = opRow.querySelector('.retrabalho-input');
+    if (opInput && dados.operador) opInput.value = dados.operador;
+    if (op2Input && dados.operador2) op2Input.value = dados.operador2;
+    if (retInput && dados.retrabalho) retInput.value = dados.retrabalho;
+  });
+  salvarEstado();
+  alert(`Operadores de ${ontemISO.split('-').reverse().join('/')} preenchidos. Confira e ajuste quem mudou. (Contenção não é repetida, pois é específica de cada peça.)`);
+}
+
+// ── FEATURES 3 e 4: Relatório mensal de operadores + contador de contenções ──
+function mostrarRelatorioOperadores() {
+  const historico = getHistoricoOperadores();
+  const datas = Object.keys(historico).sort();
+  if (datas.length === 0) {
+    alert('Ainda não há histórico de operadores registrado.');
+    return;
+  }
+
+  // Contagem: operador -> maquina -> quantidade de dias
+  const contagemOperadores = {};
+  // Contagem: maquina -> quantidade de dias com contenção
+  const contagemContencoes = {};
+
+  datas.forEach(dataISO => {
+    const doDia = historico[dataISO];
+    Object.values(doDia).forEach(reg => {
+      const nomeMaq = reg.nome;
+      [reg.operador, reg.operador2].forEach(op => {
+        if (!op) return;
+        if (!contagemOperadores[op]) contagemOperadores[op] = {};
+        contagemOperadores[op][nomeMaq] = (contagemOperadores[op][nomeMaq] || 0) + 1;
+      });
+      const temContencao = (reg.contencoes && reg.contencoes.length > 0) || reg.contencao;
+      if (temContencao) {
+        contagemContencoes[nomeMaq] = (contagemContencoes[nomeMaq] || 0) + 1;
+      }
+    });
+  });
+
+  let texto = `📊 RELATÓRIO DE OPERADORES\n(${datas.length} dia(s) registrado(s))\n\n`;
+  texto += `👤 POR OPERADOR(A):\n`;
+  Object.keys(contagemOperadores).sort().forEach(op => {
+    const maquinas = contagemOperadores[op];
+    const partes = Object.keys(maquinas).sort().map(m => `${m}: ${maquinas[m]}x`);
+    texto += `• ${op} — ${partes.join(', ')}\n`;
+  });
+
+  texto += `\n🦺 CONTENÇÕES POR MÁQUINA:\n`;
+  const maqsComContencao = Object.keys(contagemContencoes).sort();
+  if (maqsComContencao.length === 0) {
+    texto += `(nenhuma contenção registrada)\n`;
+  } else {
+    maqsComContencao.forEach(m => {
+      texto += `• ${m} — ${contagemContencoes[m]} dia(s)\n`;
+    });
+  }
+
+  alert(texto);
+}
+
+// ── Assinatura do envio ──
+function gerarAssinatura() {
+  const agora = new Date();
+  const dataHora = agora.toLocaleDateString('pt-BR') + ' ' +
+    agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  return `Claudio Roberto — enviado em ${dataHora}`;
+}
+
+// ── FEATURE: Exportar CSV do dia ──
+function exportarCSV() {
+  calcularTotal();
+  const data = document.getElementById('dataInput').value || '';
+  const turnoSelecionado = document.querySelector('input[name="turno"]:checked')?.value || '1º';
+
+  let linhasCSV = [['Data','Turno','Maquina','Peca','Quantidade','Obs','Operador','Operador2','Retrabalho','Contencao']];
+  document.querySelectorAll('.maq-card').forEach(card => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
+    const opRow = card.querySelector('.operador-row');
+    const operador   = opRow?.querySelector('.operador-input')?.value || '';
+    const operador2  = opRow?.querySelector('.operador2-input')?.value || '';
+    const retrabalho = opRow?.querySelector('.retrabalho-input')?.value || '';
+    card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
+      const peca = bloco.querySelector('.peca-input')?.value || '';
+      const qtd  = bloco.querySelector('.qtd-input')?.value || '';
+      const obs  = bloco.querySelector('.obs-input')?.value || '';
+      const contencao = bloco.querySelector('.contencao-item-input')?.value || '';
+      if (peca || (qtd && qtd !== '0')) {
+        linhasCSV.push([data, turnoSelecionado, nome, peca, qtd, obs, operador, operador2, retrabalho, contencao]);
+      }
+    });
+  });
+
+  const csvContent = linhasCSV.map(linha =>
+    linha.map(campo => `"${String(campo).replace(/"/g,'""')}"`).join(';')
+  ).join('\n');
+
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const nomeArquivo = `relatorio_solda_${data || 'sem-data'}.csv`;
+
+  if (navigator.share && navigator.canShare) {
+    const file = new File([blob], nomeArquivo, { type: 'text/csv' });
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Relatório de Solda CSV' }).catch(() => baixarArquivo(blob, nomeArquivo));
+      return;
+    }
+  }
+  baixarArquivo(blob, nomeArquivo);
+}
+
+function baixarArquivo(blob, nomeArquivo) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = nomeArquivo;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// ── FEATURE: Backup manual (compartilha um JSON com o rascunho do dia) ──
+function backupDrive() {
+  salvarEstado();
+  const dados = coletarEstado();
+  const data = document.getElementById('dataInput').value || 'sem-data';
+  const json = JSON.stringify(dados, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const nomeArquivo = `backup_solda_${data}.json`;
+
+  if (navigator.share && navigator.canShare) {
+    const file = new File([blob], nomeArquivo, { type: 'application/json' });
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'Backup Relatório de Solda' })
+        .then(() => alert('Compartilhado! Escolha o Google Drive na lista pra salvar.'))
+        .catch(() => baixarArquivo(blob, nomeArquivo));
+      return;
+    }
+  }
+  baixarArquivo(blob, nomeArquivo);
+  alert('Arquivo baixado. Envie manualmente pro Google Drive pelo app de Arquivos ou pelo próprio Drive.');
+}
+
+// ── Modal de Ajuda / Funcionalidades ──
+function abrirAjuda() {
+  const modal = document.getElementById('modalAjuda');
+  if (modal) modal.style.display = 'flex';
+}
+function fecharAjuda() {
+  const modal = document.getElementById('modalAjuda');
+  if (modal) modal.style.display = 'none';
+}
+
+// ── PWA: Service Worker ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registrado:', reg.scope))
+      .catch(err => console.log('SW erro:', err));
+  });
+}
+
+// ── PWA: Instalar prompt ──
+let deferredPrompt = null;
+const banner = document.getElementById('installBanner');
+const btnInstalar = document.getElementById('btnInstalar');
+const btnFechar = document.getElementById('btnFecharBanner');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  banner.classList.add('show');
+});
+
+btnInstalar.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  banner.classList.remove('show');
+});
+
+btnFechar.addEventListener('click', () => {
+  banner.classList.remove('show');
+  deferredPrompt = null;
+});
+
+window.addEventListener('appinstalled', () => {
+  banner.classList.remove('show');
+  console.log('PWA instalado!');
+});
+
+// ── OFFLINE / ONLINE TOAST ──
+function mostrarToast(id, ms = 3000) {
+  const el = document.getElementById(id);
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), ms);
+}
+
+window.addEventListener('offline', () => mostrarToast('toastOffline', 5000));
+window.addEventListener('online',  () => mostrarToast('toastOnline', 3000));
+
+// ── RELATÓRIO ──
+const maquinas = [
+  "MS001","MS002","MS003","MS004","MS005","MS006","MS007","MS008",
+  "Multi Ponto 009","MS010","MS011","MS012","MS013",
+  "MS014/MS015","Rebitadeira","Robo","Mont.1","Mont.2"
+];
+
+const hoje = new Date().toISOString().split('T')[0];
+document.getElementById('dataInput').value = hoje;
+atualizarData();
+document.getElementById('dataInput').addEventListener('change', () => { atualizarData(); salvarEstado(); });
+
+function atualizarData() {
+  const val = document.getElementById('dataInput').value;
+  if (val) {
+    const [y,m,d] = val.split('-');
+    document.getElementById('dataTopo').textContent = `${d}/${m}/${y}`;
+  }
+}
+
+let contadores = {};
+
+function criarLinha(maqId) {
+  if (!contadores[maqId]) contadores[maqId] = 0;
+  contadores[maqId]++;
+  const bloco = document.createElement('div');
+  bloco.className = 'peca-bloco';
+  bloco.innerHTML = `
+    <div class="item-row">
+      <div class="field-group">
+        <label>Nº Peça</label>
+        <input type="text" placeholder="Ex: 6705" class="peca-input">
+        <span class="val-span"></span>
+      </div>
+      <div class="field-group qty">
+        <label>Quantidade</label>
+        <input type="number" min="0" placeholder="Qtd" class="qtd-input">
+        <span class="val-span"></span>
+      </div>
+      <div class="field-group obs">
+        <label>Observação</label>
+        <input type="text" placeholder="..." class="obs-input">
+        <span class="val-span"></span>
+      </div>
+      <button class="btn-remove" onclick="this.closest('.peca-bloco').remove(); salvarEstado();">✕</button>
+    </div>
+    <div class="peca-contencao-row">
+      <div class="field-group">
+        <label>Contenção</label>
+        <input type="text" placeholder="Se houver" class="contencao-item-input">
+        <span class="val-span"></span>
+      </div>
+    </div>
+  `;
+  return bloco;
+}
+
+const operadoresLista = [
+  "Ingrid","Gustavo","Márcio","Bento","João Vitor","Simonia","Silvio Jose",
+  "Silvio Fernandes","Silvana","Alex Grimek","Carlos","Matheus","Everton",
+  "Willian","Francisco Lino","João Lima","Andre","Júlio Cesar","Anderson Rodrigo",
+  "Lucas","Gilmar","Rodrigo Ferreira","Claudio Roberto"
+];
+
+// Nomes femininos conhecidos, pra decidir entre "Operador" e "Operadora"
+const OPERADORAS_FEMININO = ["Ingrid","Simonia","Silvana"];
+
+function papelOperador(nome) {
+  return OPERADORAS_FEMININO.includes(nome) ? 'Operadora' : 'Operador';
+}
+
+(function criarDatalistOperadores() {
+  const dl = document.createElement('datalist');
+  dl.id = 'operadoresList';
+  dl.innerHTML = operadoresLista.map(n => `<option value="${n}">`).join('');
+  document.body.appendChild(dl);
+})();
+
+function criarOperadorRow(maq) {
+  const row = document.createElement('div');
+  row.className = 'operador-row';
+  if (maq === 'MS014/MS015') {
+    row.innerHTML = `
+      <div class="operador-fields-row">
+        <div class="field-group">
+          <label>Operador 1</label>
+          <input type="text" class="operador-input" list="operadoresList" placeholder="Nome" onchange="salvarEstado()">
+        </div>
+        <div class="field-group">
+          <label>Operador 2</label>
+          <input type="text" class="operador2-input" list="operadoresList" placeholder="Nome" onchange="salvarEstado()">
+        </div>
+        <div class="field-group">
+          <label>Retrabalho</label>
+          <input type="text" class="retrabalho-input" placeholder="Nome (manual)" onchange="salvarEstado()">
+        </div>
+      </div>
+    `;
+  } else {
+    row.innerHTML = `
+      <div class="operador-fields-row">
+        <div class="field-group">
+          <label>Operador(a)</label>
+          <input type="text" class="operador-input" list="operadoresList" placeholder="Nome" onchange="salvarEstado()">
+        </div>
+      </div>
+    `;
+  }
+  return row;
+}
+
+function criarCard(maq, idx) {
+  const card = document.createElement('div');
+  card.className = 'maq-card';
+  const header = document.createElement('div');
+  header.className = 'maq-card-header';
+  header.innerHTML = `<h3>${maq}</h3><button class="btn-plus" onclick="adicionarLinha('body_${idx}', ${idx})">+</button>`;
+  const body = document.createElement('div');
+  body.className = 'maq-card-body';
+  body.id = `body_${idx}`;
+  body.appendChild(criarLinha(idx));
+  card.appendChild(header);
+  card.appendChild(criarOperadorRow(maq));
+  card.appendChild(body);
+  return card;
+}
+
+function adicionarLinha(bodyId, idx) {
+  document.getElementById(bodyId).appendChild(criarLinha(idx));
+  incrementarSetUp();
+  salvarEstado();
+}
+
+function incrementarSetUp() {
+  const su = document.getElementById('setUpsInput');
+  if (!su) return;
+  const atual = parseInt(su.value, 10) || 0;
+  su.value = atual + 1;
+  sincronizarSpans();
+  if (typeof calcularTotal === 'function') calcularTotal();
+}
+
+const content = document.getElementById('mainContent');
+maquinas.forEach((maq, idx) => content.appendChild(criarCard(maq, idx)));
+
+// Card totais
+const totaisCard = document.createElement('div');
+totaisCard.className = 'totais-card';
+totaisCard.innerHTML = `
+  <div class="totais-header"><h3>Resumo</h3></div>
+  <div class="totais-body">
+    <div class="total-row-item">
+      <label>Total Peças</label>
+      <div class="total-display" id="totalDisplay">0</div>
+    </div>
+    <div class="total-row-item">
+      <label>Set Ups</label>
+      <input type="number" min="0" placeholder="0" id="setUpsInput">
+      <span class="val-span" id="setUpsSpan"></span>
+    </div>
+    <div class="total-row-item">
+      <label>Try Out</label>
+      <input type="number" min="0" placeholder="0" id="tryOutInput">
+      <span class="val-span" id="tryOutSpan"></span>
+    </div>
+    <div class="total-row-item" style="border-top:1.5px dashed var(--border); margin-top:6px; padding-top:10px;">
+      <label>🔐 Cód. Verificação</label>
+      <div class="total-display" id="codigoDisplay" style="font-size:1rem; color:var(--accent);">CS-0000</div>
+    </div>
+    <div class="total-row-item">
+      <label>📊 Próximo Relatório Nº</label>
+      <div class="total-display" id="numeroRelDisplay" style="font-size:1rem; color:var(--accent);">0000</div>
+    </div>
+  </div>
+  <div style="padding:10px 14px; border-top:1.5px dashed var(--border); font-size:0.78rem; color:var(--muted); font-style:italic; text-align:center;" id="fraseDoDiaDisplay"></div>
+`;
+content.appendChild(totaisCard);
+document.getElementById('fraseDoDiaDisplay').textContent = `"${fraseDoDia()}"`;
+document.getElementById('numeroRelDisplay').textContent = String(numeroRelatorioAtual() + 1).padStart(4, '0');
+
+// ── AUTOSAVE / RASCUNHO (localStorage) ──
+const STORAGE_KEY = 'solda_relatorio_rascunho_v1';
+let salvarTimeout = null;
+
+function coletarEstado() {
+  const estado = { data: document.getElementById('dataInput').value, turno: document.querySelector('input[name="turno"]:checked')?.value || '1º', setups: document.getElementById('setUpsInput')?.value || '', tryouts: document.getElementById('tryOutInput')?.value || '', maquinas: {} };
+  estado.operadores = {};
+  document.querySelectorAll('.maq-card').forEach((card, idx) => {
+    const linhas = [];
+    card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
+      linhas.push({
+        peca: bloco.querySelector('.peca-input')?.value || '',
+        qtd: bloco.querySelector('.qtd-input')?.value || '',
+        obs: bloco.querySelector('.obs-input')?.value || '',
+        contencao: bloco.querySelector('.contencao-item-input')?.value || ''
+      });
+    });
+    estado.maquinas[idx] = linhas;
+
+    const opRow = card.querySelector('.operador-row');
+    if (opRow) {
+      estado.operadores[idx] = {
+        operador: opRow.querySelector('.operador-input')?.value || '',
+        operador2: opRow.querySelector('.operador2-input')?.value || '',
+        retrabalho: opRow.querySelector('.retrabalho-input')?.value || ''
+      };
+    }
+  });
+  return estado;
+}
+
+function atualizarIndicadorSalvo() {
+  const el = document.getElementById('salvoIndicador');
+  if (!el) return;
+  const agora = new Date();
+  const hh = String(agora.getHours()).padStart(2,'0');
+  const mm = String(agora.getMinutes()).padStart(2,'0');
+  el.textContent = `💾 Salvo ${hh}:${mm}`;
+}
+
+function salvarEstadoImediato() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(coletarEstado()));
+    atualizarIndicadorSalvo();
+  } catch (e) {
+    console.log('Erro ao salvar rascunho:', e);
+  }
+}
+
+function salvarEstado() {
+  clearTimeout(salvarTimeout);
+  salvarTimeout = setTimeout(salvarEstadoImediato, 250);
+}
+
+function restaurarEstado() {
+  let salvo;
+  try {
+    salvo = JSON.parse(localStorage.getItem(STORAGE_KEY));
+  } catch (e) { salvo = null; }
+  if (!salvo) return;
+
+  if (salvo.data) {
+    document.getElementById('dataInput').value = salvo.data;
+    atualizarData();
+  }
+  if (salvo.turno) {
+    const radio = document.querySelector(`input[name="turno"][value="${salvo.turno}"]`);
+    if (radio) radio.checked = true;
+  }
+  if (salvo.setups !== undefined) document.getElementById('setUpsInput').value = salvo.setups;
+  if (salvo.tryouts !== undefined) document.getElementById('tryOutInput').value = salvo.tryouts;
+
+  Object.keys(salvo.maquinas || {}).forEach(idx => {
+    const linhasSalvas = salvo.maquinas[idx];
+    const body = document.getElementById(`body_${idx}`);
+    if (!body || !linhasSalvas || linhasSalvas.length === 0) return;
+    // Garante blocos suficientes (já existe 1 por padrão)
+    while (body.querySelectorAll('.peca-bloco').length < linhasSalvas.length) {
+      body.appendChild(criarLinha(idx));
+    }
+    const blocos = body.querySelectorAll('.peca-bloco');
+    linhasSalvas.forEach((dados, i) => {
+      const bloco = blocos[i];
+      if (!bloco) return;
+      bloco.querySelector('.peca-input').value = dados.peca || '';
+      bloco.querySelector('.qtd-input').value = dados.qtd || '';
+      bloco.querySelector('.obs-input').value = dados.obs || '';
+      const contInput = bloco.querySelector('.contencao-item-input');
+      if (contInput) contInput.value = dados.contencao || '';
+    });
+  });
+
+  Object.keys(salvo.operadores || {}).forEach(idx => {
+    const dados = salvo.operadores[idx];
+    const card = document.querySelectorAll('.maq-card')[idx];
+    const opRow = card?.querySelector('.operador-row');
+    if (!opRow || !dados) return;
+    const opInput = opRow.querySelector('.operador-input');
+    const op2Input = opRow.querySelector('.operador2-input');
+    const retInput = opRow.querySelector('.retrabalho-input');
+    if (opInput) opInput.value = dados.operador || '';
+    if (op2Input) op2Input.value = dados.operador2 || '';
+    if (retInput) retInput.value = dados.retrabalho || '';
+  });
+
+  calcularTotal();
+  atualizarIndicadorSalvo();
+}
+
+function novoRelatorio() {
+  if (confirm('Isso vai apagar o rascunho salvo e limpar todos os campos preenchidos hoje. Tem certeza?')) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+}
+
+// Autosave em qualquer digitação dentro do conteúdo (peça, qtd, obs, contenção, set up, try out)
+content.addEventListener('input', () => { calcularTotal(); salvarEstado(); });
+document.querySelectorAll('input[name="turno"]').forEach(r => r.addEventListener('change', salvarEstado));
+
+// Restaura rascunho salvo (se existir) assim que a tela é montada
+restaurarEstado();
+
+function calcularTotal() {
+  let total = 0;
+  document.querySelectorAll('.qtd-input').forEach(i => {
+    total += parseFloat(i.value) || 0;
+  });
+  document.getElementById('totalDisplay').textContent = total;
+
+  const data = document.getElementById('dataInput')?.value || '';
+  const turno = document.querySelector('input[name="turno"]:checked')?.value || '1º';
+  const setups = document.getElementById('setUpsInput')?.value || '0';
+  const tryouts = document.getElementById('tryOutInput')?.value || '0';
+  const codigoEl = document.getElementById('codigoDisplay');
+  if (codigoEl && typeof gerarCodigoVerificacao === 'function') {
+    codigoEl.textContent = gerarCodigoVerificacao(`${data}|${turno}|${total}|${setups}|${tryouts}`);
+  }
+}
+
+function sincronizarSpans() {
+  document.querySelectorAll('.field-group input').forEach(input => {
+    const span = input.nextElementSibling;
+    if (span && span.classList.contains('val-span')) {
+      span.textContent = input.value || '';
+    }
+  });
+  const su = document.getElementById('setUpsInput');
+  const to = document.getElementById('tryOutInput');
+  document.getElementById('setUpsSpan').textContent = su ? su.value : '';
+  document.getElementById('tryOutSpan').textContent = to ? to.value : '';
+}
+
+function fazerPrint() {
+  calcularTotal();
+  sincronizarSpans();
+  document.body.classList.add('modo-foto');
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => document.body.classList.remove('modo-foto'), 1000);
+  }, 300);
+}
+
+// ── CÓDIGO DE VERIFICAÇÃO ÚNICO ──
+// Gera um código curto e determinístico a partir dos dados do relatório.
+// Serve como "assinatura" do app: qualquer relatório gerado por este
+// sistema carrega esse código, o que facilita identificar a origem.
+function gerarCodigoVerificacao(semente) {
+  let hash = 0;
+  for (let i = 0; i < semente.length; i++) {
+    hash = ((hash << 5) - hash) + semente.charCodeAt(i);
+    hash |= 0;
+  }
+  const base36 = Math.abs(hash).toString(36).toUpperCase().slice(0, 4).padStart(4, '0');
+  return `CS-${base36}`;
+}
+
+// Desenha o nome do operador dentro de um "quadrado" feito com blocos de texto,
+// pra destacar quem está na máquina antes de listar as peças.
+function gerarQuadradoNome(nome) {
+  return `「${papelOperador(nome)} ${nome}」`;
+}
+
+function enviarWhatsApp() {
+  calcularTotal();
+  sincronizarSpans();
+
+  const faltando = verificarOperadoresFaltando();
+  if (faltando.length > 0) {
+    const continuar = confirm(`⚠️ Máquina(s) sem operador preenchido:\n${faltando.join(', ')}\n\nQuer enviar assim mesmo?`);
+    if (!continuar) return;
+  }
+
+  const data = document.getElementById('dataInput').value || '';
+  const partes = data.split('-');
+  const dataFmt = partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : data;
+
+  // Coletar dados das máquinas (lendo a estrutura real: cada card tem blocos de peça/qtd/obs/contenção)
+  let linhas = [];
+  let maquinasAtivas = 0;
+  const totalMaquinas = document.querySelectorAll('.maq-card').length;
+  document.querySelectorAll('.maq-card').forEach(card => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
+    let cardTemDados = false;
+    const opRow = card.querySelector('.operador-row');
+    const operador   = opRow?.querySelector('.operador-input')?.value || '';
+    const operador2  = opRow?.querySelector('.operador2-input')?.value || '';
+    const retrabalho = opRow?.querySelector('.retrabalho-input')?.value || '';
+
+    const pecasDoCard = [];
+    card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
+      const peca = bloco.querySelector('.peca-input')?.value || '';
+      const qtd  = bloco.querySelector('.qtd-input')?.value || '';
+      const obs  = bloco.querySelector('.obs-input')?.value || '';
+      const contencao = bloco.querySelector('.contencao-item-input')?.value || '';
+      if (peca || (qtd && qtd !== '0')) {
+        pecasDoCard.push({ peca, qtd, obs, contencao });
+      }
+    });
+
+    if (pecasDoCard.length > 0) {
+      cardTemDados = true;
+      maquinasAtivas++;
+      if (operador) linhas.push(gerarQuadradoNome(operador));
+      if (operador2) linhas.push(gerarQuadradoNome(operador2));
+      pecasDoCard.forEach(p => {
+        linhas.push(`🔹 ${nome}: ${p.peca || '-'} - ${p.qtd || '0'}${p.obs ? ' - '+p.obs : ''}`);
+        if (p.contencao) linhas.push(`    🦺 Contenção: ${p.contencao}`);
+      });
+      if (retrabalho) linhas.push(`    🔁 Retrabalho: ${retrabalho}`);
+      linhas.push('');
+    }
+  });
+
+  const total = document.getElementById('totalDisplay')?.textContent || '0';
+  const setups = document.getElementById('setUpsInput')?.value || '0';
+  const tryouts = document.getElementById('tryOutInput')?.value || '0';
+
+  const turnoSelecionado = document.querySelector('input[name="turno"]:checked')?.value || '1º';
+
+  // Código único deste relatório (data + turno + total + setups + tryouts)
+  const codigo = gerarCodigoVerificacao(`${dataFmt}|${turnoSelecionado}|${total}|${setups}|${tryouts}|${linhas.length}`);
+
+  // Contador sequencial, comparação com ontem, frase do dia
+  const numeroRel = proximoNumeroRelatorio();
+  const totalNum = parseFloat(total) || 0;
+  const comparativo = compararComOntem(data, totalNum);
+  salvarTotalDoDia(data, totalNum);
+  salvarOperadoresDoDia(data);
+  const frase = fraseDoDia();
+
+  const linhaTopo  = '🛡️⚙️🛡️⚙️🛡️⚙️🛡️⚙️🛡️⚙️';
+
+  let msg = `${linhaTopo}\n`;
+  msg += `👷 *Claudio Solda*\n`;
+  msg += `📋 *RELATÓRIO DE SOLDA* — Nº ${String(numeroRel).padStart(4,'0')}\n`;
+  msg += `📅 Data: ${dataFmt}\n`;
+  msg += `🕐 Turno: ${turnoSelecionado}\n`;
+  msg += `${linhaTopo}\n\n`;
+  msg += `*PRODUÇÃO:*\n`;
+  while (linhas.length > 0 && linhas[linhas.length - 1] === '') linhas.pop();
+  msg += linhas.length > 0 ? linhas.join('\n') : '(sem dados)';
+  msg += `\n\n✅ *Total: ${total}*`;
+  if (comparativo) msg += `\n${comparativo}`;
+  msg += `\n⚙️ Set Up: ${setups} | Try Out: ${tryouts}`;
+  msg += `\n🏭 Máquinas ativas: ${maquinasAtivas} de ${totalMaquinas}`;
+  msg += `\n\n🔐 *Cód. de verificação: ${codigo}*`;
+  msg += `\n\n_"${frase}"_`;
+  msg += `\n_App exclusivo criado por Claudio © — Relatório de Solda_`;
+  msg += `\n${gerarAssinatura()}`;
+
+  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+function salvarFoto() {
+  if (typeof html2canvas === 'undefined') {
+    alert('Aguarde 2 segundos e tente novamente.');
+    return;
+  }
+  calcularTotal();
+  sincronizarSpans();
+  document.body.classList.add('modo-foto');
+  setTimeout(() => {
+    const alvo = document.getElementById('mainContent');
+    const cab  = document.getElementById('cabecalho');
+    Promise.all([
+      html2canvas(cab,  { scale: 2, useCORS: true, backgroundColor: '#1a2e4a', logging: false }),
+      html2canvas(alvo, { scale: 2, useCORS: true, backgroundColor: '#e8eef5', logging: false,
+        width: alvo.scrollWidth, height: alvo.scrollHeight })
+    ]).then(([hC, cC]) => {
+      document.body.classList.remove('modo-foto');
+      const final = document.createElement('canvas');
+      final.width  = Math.max(hC.width, cC.width);
+      final.height = hC.height + cC.height;
+      const ctx = final.getContext('2d');
+      ctx.drawImage(hC, 0, 0);
+      ctx.drawImage(cC, 0, hC.height);
+      const val   = document.getElementById('dataInput').value || 'relatorio';
+      const parts = val.split('-');
+      const nome  = parts.length === 3
+        ? `relatorio_${parts[2]}-${parts[1]}-${parts[0]}.png`
+        : 'relatorio.png';
+      const link = document.createElement('a');
+      link.download = nome;
+      link.href = final.toDataURL('image/png');
+      link.click();
+    }).catch(() => {
+      document.body.classList.remove('modo-foto');
+      alert('Erro ao gerar imagem. Use o botão Print.');
+    });
+  }, 400);
+}
+</script>
+<div id="modalAjuda" class="modal-ajuda-overlay" style="display:none;">
+  <div class="modal-ajuda-caixa">
+    <div class="modal-ajuda-header">
+      <h2>ℹ️ Funcionalidades do App</h2>
+      <button class="modal-ajuda-fechar" onclick="fecharAjuda()">✕</button>
+    </div>
+    <div class="modal-ajuda-corpo">
+
+      <h3>📋 Relatório e Produção</h3>
+      <ol>
+        <li>Registro de produção por máquina (18 máquinas: MS001–MS015, Rebitadeira, Robô, Montagem 1 e 2)</li>
+        <li>Botão "+" pra adicionar múltiplas peças na mesma máquina</li>
+        <li>Set Up automático (+1 sempre que adiciona uma peça nova)</li>
+        <li>Try Out</li>
+        <li>Total geral calculado automaticamente</li>
+        <li>Comparação com produção de ontem (% acima/abaixo)</li>
+        <li>Numeração sequencial do relatório (Nº 0001, 0002...)</li>
+        <li>Código de verificação único (CS-XXXX)</li>
+        <li>25 frases inspiradoras rotativas</li>
+      </ol>
+
+      <h3>👤 Operadores</h3>
+      <ol start="10">
+        <li>Campo Operador(a) com autocomplete (nomes cadastrados)</li>
+        <li>Campo Contenção por peça (texto livre, opcional, logo abaixo de cada Nº Peça)</li>
+        <li>MS014/MS015 com 3 campos (Operador 1, Operador 2, Retrabalho)</li>
+        <li>Alerta de operador não preenchido antes de enviar</li>
+        <li>Relatório mensal de operadores (quantas vezes cada um apareceu por máquina)</li>
+        <li>Contador de contenções por máquina</li>
+        <li>Botão "Repetir operadores de ontem"</li>
+      </ol>
+
+      <h3>📤 Envio e Backup</h3>
+      <ol start="17">
+        <li>Envio direto pro WhatsApp (mensagem formatada)</li>
+        <li>Salvar como imagem (foto do relatório)</li>
+        <li>Modo Print (visual pra impressão)</li>
+        <li>Exportar CSV do dia</li>
+        <li>Backup manual (compartilhar/Google Drive)</li>
+        <li>Assinatura automática (nome + data/hora do envio)</li>
+      </ol>
+
+      <h3>⚙️ Sistema</h3>
+      <ol start="23">
+        <li>Autosave do rascunho (localStorage, por dia)</li>
+        <li>Senha de acesso</li>
+        <li>Marca d'água © CLAUDIO</li>
+        <li>PWA instalável, funciona offline (Service Worker)</li>
+      </ol>
+
+      <p class="modal-ajuda-rodape">App exclusivo criado por Claudio © — Relatório de Solda</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
