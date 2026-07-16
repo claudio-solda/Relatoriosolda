@@ -314,6 +314,7 @@
   }
   .field-group.qty { flex: 0 0 80px; }
   .field-group.obs { flex: 0 0 100px; }
+  .field-group.fase { flex: 0 0 72px; }
   .field-group label {
     font-size: 0.72rem;
     font-weight: 700;
@@ -979,7 +980,7 @@ function exportarCSV() {
   const data = document.getElementById('dataInput').value || '';
   const turnoSelecionado = document.querySelector('input[name="turno"]:checked')?.value || '1º';
 
-  let linhasCSV = [['Data','Turno','Maquina','Peca','Quantidade','Obs','Operador','Operador2','Retrabalho','Contencao']];
+  let linhasCSV = [['Data','Turno','Maquina','Peca','Fase','Quantidade','Obs','Operador','Operador2','Retrabalho','Contencao']];
   document.querySelectorAll('.maq-card').forEach(card => {
     const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
     const opRow = card.querySelector('.operador-row');
@@ -988,11 +989,12 @@ function exportarCSV() {
     const retrabalho = opRow?.querySelector('.retrabalho-input')?.value || '';
     card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
       const peca = bloco.querySelector('.peca-input')?.value || '';
+      const fase = bloco.querySelector('.fase-input')?.value || '';
       const qtd  = bloco.querySelector('.qtd-input')?.value || '';
       const obs  = bloco.querySelector('.obs-input')?.value || '';
       const contencao = bloco.querySelector('.contencao-item-input')?.value || '';
       if (peca || (qtd && qtd !== '0')) {
-        linhasCSV.push([data, turnoSelecionado, nome, peca, qtd, obs, operador, operador2, retrabalho, contencao]);
+        linhasCSV.push([data, turnoSelecionado, nome, peca, fase, qtd, obs, operador, operador2, retrabalho, contencao]);
       }
     });
   });
@@ -1135,7 +1137,12 @@ function criarLinha(maqId) {
     <div class="item-row">
       <div class="field-group">
         <label>Nº Peça</label>
-        <input type="text" placeholder="Ex: 6705" class="peca-input">
+        <input type="text" placeholder="Ex: 6705" class="peca-input" onchange="autoPreencherFase(this)">
+        <span class="val-span"></span>
+      </div>
+      <div class="field-group fase">
+        <label>Fase</label>
+        <input type="number" min="10" max="90" step="10" placeholder="Fase" class="fase-input" onchange="salvarFaseDoCodigo(this)">
         <span class="val-span"></span>
       </div>
       <div class="field-group qty">
@@ -1285,6 +1292,38 @@ document.getElementById('fraseDoDiaDisplay').textContent = `"${fraseDoDia()}"`;
 document.getElementById('numeroRelDisplay').textContent = String(numeroRelatorioAtual() + 1).padStart(4, '0');
 
 // ── AUTOSAVE / RASCUNHO (localStorage) ──
+// ── FASE POR CÓDIGO DE PEÇA (lembra a última fase usada por código) ──
+const FASE_POR_CODIGO_KEY = 'solda_fase_por_codigo';
+
+function getFaseMap() {
+  try {
+    return JSON.parse(localStorage.getItem(FASE_POR_CODIGO_KEY)) || {};
+  } catch (e) { return {}; }
+}
+
+function salvarFaseDoCodigo(faseInput) {
+  const bloco = faseInput.closest('.peca-bloco');
+  const pecaInput = bloco ? bloco.querySelector('.peca-input') : null;
+  const codigo = pecaInput ? pecaInput.value.trim() : '';
+  if (!codigo || !faseInput.value) return;
+  const mapa = getFaseMap();
+  mapa[codigo] = faseInput.value;
+  localStorage.setItem(FASE_POR_CODIGO_KEY, JSON.stringify(mapa));
+  salvarEstado();
+}
+
+function autoPreencherFase(pecaInput) {
+  const bloco = pecaInput.closest('.peca-bloco');
+  const faseInput = bloco ? bloco.querySelector('.fase-input') : null;
+  const codigo = pecaInput.value.trim();
+  if (!codigo || !faseInput || faseInput.value) return;
+  const mapa = getFaseMap();
+  if (mapa[codigo]) {
+    faseInput.value = mapa[codigo];
+    salvarEstado();
+  }
+}
+
 const STORAGE_KEY = 'solda_relatorio_rascunho_v1';
 let salvarTimeout = null;
 
@@ -1296,6 +1335,7 @@ function coletarEstado() {
     card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
       linhas.push({
         peca: bloco.querySelector('.peca-input')?.value || '',
+        fase: bloco.querySelector('.fase-input')?.value || '',
         qtd: bloco.querySelector('.qtd-input')?.value || '',
         obs: bloco.querySelector('.obs-input')?.value || '',
         contencao: bloco.querySelector('.contencao-item-input')?.value || ''
@@ -1369,6 +1409,8 @@ function restaurarEstado() {
       const bloco = blocos[i];
       if (!bloco) return;
       bloco.querySelector('.peca-input').value = dados.peca || '';
+      const faseInput = bloco.querySelector('.fase-input');
+      if (faseInput) faseInput.value = dados.fase || '';
       bloco.querySelector('.qtd-input').value = dados.qtd || '';
       bloco.querySelector('.obs-input').value = dados.obs || '';
       const contInput = bloco.querySelector('.contencao-item-input');
@@ -1496,11 +1538,12 @@ function enviarWhatsApp() {
     const pecasDoCard = [];
     card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
       const peca = bloco.querySelector('.peca-input')?.value || '';
+      const fase = bloco.querySelector('.fase-input')?.value || '';
       const qtd  = bloco.querySelector('.qtd-input')?.value || '';
       const obs  = bloco.querySelector('.obs-input')?.value || '';
       const contencao = bloco.querySelector('.contencao-item-input')?.value || '';
       if (peca || (qtd && qtd !== '0')) {
-        pecasDoCard.push({ peca, qtd, obs, contencao });
+        pecasDoCard.push({ peca, fase, qtd, obs, contencao });
       }
     });
 
@@ -1510,7 +1553,7 @@ function enviarWhatsApp() {
       if (operador) linhas.push(gerarQuadradoNome(operador));
       if (operador2) linhas.push(gerarQuadradoNome(operador2));
       pecasDoCard.forEach(p => {
-        linhas.push(`🔹 ${nome}: ${p.peca || '-'} - ${p.qtd || '0'}${p.obs ? ' - '+p.obs : ''}`);
+        linhas.push(`🔹 ${nome}: ${p.peca || '-'}${p.fase ? ' | F: '+p.fase : ''} - ${p.qtd || '0'}${p.obs ? ' - '+p.obs : ''}`);
         if (p.contencao) linhas.push(`    🦺 Contenção: ${p.contencao}`);
       });
       if (retrabalho) linhas.push(`    🔁 Retrabalho: ${retrabalho}`);
@@ -1623,6 +1666,7 @@ function salvarFoto() {
       <ol start="10">
         <li>Campo Operador(a) com autocomplete (nomes cadastrados)</li>
         <li>Campo Contenção por peça (texto livre, opcional, logo abaixo de cada Nº Peça)</li>
+        <li>Campo Fase por peça (10 a 90), lembra automaticamente a última fase usada por código</li>
         <li>MS014/MS015 com 3 campos (Operador 1, Operador 2, Retrabalho)</li>
         <li>Alerta de operador não preenchido antes de enviar</li>
         <li>Relatório mensal de operadores (quantas vezes cada um apareceu por máquina)</li>
