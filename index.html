@@ -1552,9 +1552,10 @@ function enviarWhatsApp() {
       maquinasAtivas++;
       if (operador) linhas.push(gerarQuadradoNome(operador));
       if (operador2) linhas.push(gerarQuadradoNome(operador2));
+      linhas.push(`🔹 *${nome}*`);
       pecasDoCard.forEach(p => {
-        linhas.push(`🔹 ${nome}: ${p.peca || '-'}${p.fase ? ' | F: '+p.fase : ''} | Qtd: ${p.qtd || '0'}${p.obs ? ' - '+p.obs : ''}`);
-        if (p.contencao) linhas.push(`    🦺 Contenção: ${p.contencao}`);
+        linhas.push(`    ${p.peca || '-'}${p.fase ? ' | F: '+p.fase : ''} | Qtd: ${p.qtd || '0'}${p.obs ? ' - '+p.obs : ''}`);
+        if (p.contencao) linhas.push(`        🦺 Contenção: ${p.contencao}`);
       });
       if (retrabalho) linhas.push(`    🔁 Retrabalho: ${retrabalho}`);
       linhas.push('');
