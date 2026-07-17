@@ -1493,6 +1493,12 @@ function fazerPrint() {
 // Gera um código curto e determinístico a partir dos dados do relatório.
 // Serve como "assinatura" do app: qualquer relatório gerado por este
 // sistema carrega esse código, o que facilita identificar a origem.
+// Monta a linha "☑️1º ☐2º ☐3º" marcando o turno selecionado
+function gerarLinhaTurno(selecionado) {
+  const opcoes = ['1º', '2º', '3º'];
+  return opcoes.map(o => (o === selecionado ? '☑️' : '☐') + o).join(' ');
+}
+
 function gerarCodigoVerificacao(semente) {
   let hash = 0;
   for (let i = 0; i < semente.length; i++) {
@@ -1585,7 +1591,8 @@ function enviarWhatsApp() {
   msg += `👷 *Claudio Solda*\n`;
   msg += `📋 *RELATÓRIO DE SOLDA* — Nº ${String(numeroRel).padStart(4,'0')}\n`;
   msg += `📅 Data: ${dataFmt}\n`;
-  msg += `🕐 Turno: ${turnoSelecionado}\n`;
+  msg += `🏭 Setor: SOLDA\n`;
+  msg += `🕒 Turno: ${gerarLinhaTurno(turnoSelecionado)}\n`;
   msg += `${linhaTopo}\n\n`;
   msg += `*PRODUÇÃO:*\n`;
   while (linhas.length > 0 && linhas[linhas.length - 1] === '') linhas.pop();
