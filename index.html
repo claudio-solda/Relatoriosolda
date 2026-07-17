@@ -1276,6 +1276,11 @@ totaisCard.innerHTML = `
       <input type="number" min="0" placeholder="0" id="tryOutInput">
       <span class="val-span" id="tryOutSpan"></span>
     </div>
+    <div class="total-row-item">
+      <label>🎯 Meta do Dia</label>
+      <input type="number" min="0" placeholder="0" id="metaInput">
+      <span class="val-span" id="metaSpan"></span>
+    </div>
     <div class="total-row-item" style="border-top:1.5px dashed var(--border); margin-top:6px; padding-top:10px;">
       <label>🔐 Cód. Verificação</label>
       <div class="total-display" id="codigoDisplay" style="font-size:1rem; color:var(--accent);">CS-0000</div>
@@ -1328,7 +1333,7 @@ const STORAGE_KEY = 'solda_relatorio_rascunho_v1';
 let salvarTimeout = null;
 
 function coletarEstado() {
-  const estado = { data: document.getElementById('dataInput').value, turno: document.querySelector('input[name="turno"]:checked')?.value || '1º', setups: document.getElementById('setUpsInput')?.value || '', tryouts: document.getElementById('tryOutInput')?.value || '', maquinas: {} };
+  const estado = { data: document.getElementById('dataInput').value, turno: document.querySelector('input[name="turno"]:checked')?.value || '1º', setups: document.getElementById('setUpsInput')?.value || '', tryouts: document.getElementById('tryOutInput')?.value || '', meta: document.getElementById('metaInput')?.value || '', maquinas: {} };
   estado.operadores = {};
   document.querySelectorAll('.maq-card').forEach((card, idx) => {
     const linhas = [];
@@ -1395,6 +1400,7 @@ function restaurarEstado() {
   }
   if (salvo.setups !== undefined) document.getElementById('setUpsInput').value = salvo.setups;
   if (salvo.tryouts !== undefined) document.getElementById('tryOutInput').value = salvo.tryouts;
+  if (salvo.meta !== undefined) document.getElementById('metaInput').value = salvo.meta;
 
   Object.keys(salvo.maquinas || {}).forEach(idx => {
     const linhasSalvas = salvo.maquinas[idx];
@@ -1475,8 +1481,10 @@ function sincronizarSpans() {
   });
   const su = document.getElementById('setUpsInput');
   const to = document.getElementById('tryOutInput');
+  const me = document.getElementById('metaInput');
   document.getElementById('setUpsSpan').textContent = su ? su.value : '';
   document.getElementById('tryOutSpan').textContent = to ? to.value : '';
+  document.getElementById('metaSpan').textContent = me ? me.value : '';
 }
 
 function fazerPrint() {
@@ -1494,6 +1502,16 @@ function fazerPrint() {
 // Serve como "assinatura" do app: qualquer relatório gerado por este
 // sistema carrega esse código, o que facilita identificar a origem.
 // Monta a linha "☑️1º ☐2º ☐3º" marcando o turno selecionado
+// Monta a barra visual de progresso da meta (10 blocos)
+function gerarBarraMeta(total, meta) {
+  if (!meta || meta <= 0) return null;
+  const pct = Math.min(total / meta, 1);
+  const blocosCheios = Math.round(pct * 10);
+  const barra = '▰'.repeat(blocosCheios) + '▱'.repeat(10 - blocosCheios);
+  const pctExibido = Math.round((total / meta) * 100);
+  return `${barra} ${pctExibido}% (${total}/${meta})`;
+}
+
 function gerarLinhaTurno(selecionado) {
   const opcoes = ['1º', '2º', '3º'];
   return opcoes.map(o => (o === selecionado ? '☑️' : '☐') + o).join(' ');
@@ -1571,6 +1589,7 @@ function enviarWhatsApp() {
   const total = document.getElementById('totalDisplay')?.textContent || '0';
   const setups = document.getElementById('setUpsInput')?.value || '0';
   const tryouts = document.getElementById('tryOutInput')?.value || '0';
+  const meta = document.getElementById('metaInput')?.value || '';
 
   const turnoSelecionado = document.querySelector('input[name="turno"]:checked')?.value || '1º';
 
@@ -1599,6 +1618,8 @@ function enviarWhatsApp() {
   msg += linhas.length > 0 ? linhas.join('\n') : '(sem dados)';
   msg += `\n\n✅ *Total: ${total}*`;
   if (comparativo) msg += `\n${comparativo}`;
+  const barraMeta = gerarBarraMeta(totalNum, parseFloat(meta) || 0);
+  if (barraMeta) msg += `\n📊 Meta: ${barraMeta}`;
   msg += `\n⚙️ Set Up: ${setups} | Try Out: ${tryouts}`;
   msg += `\n🏭 Máquinas ativas: ${maquinasAtivas} de ${totalMaquinas}`;
   msg += `\n\n🔐 *Cód. de verificação: ${codigo}*`;
@@ -1666,6 +1687,7 @@ function salvarFoto() {
         <li>Total geral calculado automaticamente</li>
         <li>Comparação com produção de ontem (% acima/abaixo)</li>
         <li>Numeração sequencial do relatório (Nº 0001, 0002...)</li>
+        <li>Meta do Dia com barra visual de progresso (▰▱) no WhatsApp</li>
         <li>Código de verificação único (CS-XXXX)</li>
         <li>25 frases inspiradoras rotativas</li>
       </ol>
