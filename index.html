@@ -1553,7 +1553,7 @@ function enviarWhatsApp() {
       if (operador) linhas.push(gerarQuadradoNome(operador));
       if (operador2) linhas.push(gerarQuadradoNome(operador2));
       pecasDoCard.forEach(p => {
-        linhas.push(`🔹 ${nome}: ${p.peca || '-'}${p.fase ? ' | F: '+p.fase : ''} - ${p.qtd || '0'}${p.obs ? ' - '+p.obs : ''}`);
+        linhas.push(`🔹 ${nome}: ${p.peca || '-'}${p.fase ? ' | F: '+p.fase : ''} | Qtd: ${p.qtd || '0'}${p.obs ? ' - '+p.obs : ''}`);
         if (p.contencao) linhas.push(`    🦺 Contenção: ${p.contencao}`);
       });
       if (retrabalho) linhas.push(`    🔁 Retrabalho: ${retrabalho}`);
