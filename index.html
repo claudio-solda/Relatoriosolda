@@ -1765,5 +1765,63 @@ function salvarFoto() {
   </div>
 </div>
 
+
+<script>
+(function(){
+  function addEyeToggles(){
+    document.querySelectorAll('input[type="password"]').forEach(function(inp){
+      if(inp.dataset.eyeAdded) return;
+      inp.dataset.eyeAdded = '1';
+      var cs = window.getComputedStyle(inp);
+      var hasExplicitWidth = !!inp.style.width;
+      var wrap = document.createElement('span');
+      wrap.style.position = 'relative';
+      if(hasExplicitWidth){
+        wrap.style.display = 'inline-block';
+        wrap.style.width = inp.style.width;
+      } else {
+        wrap.style.display = 'block';
+        wrap.style.width = '100%';
+      }
+      wrap.style.marginTop = cs.marginTop;
+      wrap.style.marginBottom = cs.marginBottom;
+      inp.style.marginTop = '0';
+      inp.style.marginBottom = '0';
+      inp.parentNode.insertBefore(wrap, inp);
+      wrap.appendChild(inp);
+      inp.style.width = '100%';
+      inp.style.boxSizing = 'border-box';
+      inp.style.paddingRight = '36px';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.setAttribute('aria-label','Mostrar ou ocultar senha');
+      btn.textContent = '\u{1F441}';
+      btn.style.cssText = 'position:absolute;right:4px;top:50%;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;font-size:17px;padding:6px;line-height:1;opacity:.6;';
+      btn.addEventListener('click', function(){
+        var showing = inp.type === 'text';
+        inp.type = showing ? 'password' : 'text';
+        btn.textContent = showing ? '\u{1F441}' : '\u{1F648}';
+        btn.style.opacity = showing ? '.6' : '1';
+        inp.focus();
+      });
+      wrap.appendChild(btn);
+    });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', addEyeToggles);
+  } else {
+    addEyeToggles();
+  }
+  var obs = new MutationObserver(addEyeToggles);
+  if(document.body){
+    obs.observe(document.body, {childList:true, subtree:true});
+  } else {
+    document.addEventListener('DOMContentLoaded', function(){
+      obs.observe(document.body, {childList:true, subtree:true});
+    });
+  }
+})();
+</script>
+
 </body>
 </html>
