@@ -277,6 +277,28 @@
   }
   .btn-plus:hover { background: rgba(255,255,255,0.3); }
 
+  .maq-card-header-btns {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .btn-tryout {
+    background: rgba(255,193,7,0.22);
+    border: 1.5px solid rgba(255,193,7,0.55);
+    color: #ffd54f;
+    border-radius: 7px;
+    width: 28px; height: 28px;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 26px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-tryout:hover { background: rgba(255,193,7,0.38); }
+
   .maq-card-body {
     padding: 8px 10px;
     display: flex;
@@ -462,6 +484,7 @@
   body.modo-foto .top-bar { display: none !important; }
   body.modo-foto #installBanner { display: none !important; }
   body.modo-foto .btn-plus { display: none !important; }
+  body.modo-foto .btn-tryout { display: none !important; }
   body.modo-foto .btn-remove { display: none !important; }
   body.modo-foto .field-group input { display: none !important; }
   body.modo-foto .field-group .val-span { display: block !important; }
@@ -473,7 +496,7 @@
     html, body { background: white !important; padding: 0 !important; }
     .top-bar { display: none !important; }
     #installBanner, #toastOffline, #toastOnline { display: none !important; }
-    .btn-plus, .btn-remove { display: none !important; }
+    .btn-plus, .btn-remove, .btn-tryout { display: none !important; }
     .content { padding: 4px !important; gap: 4px !important; max-width: 100% !important; }
     .maq-card { break-inside: avoid !important; box-shadow: none !important; border: 1px solid #aaa !important; }
     .maq-card-header { padding: 5px 10px !important; }
@@ -1227,7 +1250,7 @@ function criarCard(maq, idx) {
   card.className = 'maq-card';
   const header = document.createElement('div');
   header.className = 'maq-card-header';
-  header.innerHTML = `<h3>${maq}</h3><button class="btn-plus" onclick="adicionarLinha('body_${idx}', ${idx})">+</button>`;
+  header.innerHTML = `<h3>${maq}</h3><div class="maq-card-header-btns"><button class="btn-plus" onclick="adicionarLinha('body_${idx}', ${idx})">+</button><button class="btn-tryout" onclick="adicionarLinhaTryOut('body_${idx}', ${idx})" title="Try Out">✳</button></div>`;
   const body = document.createElement('div');
   body.className = 'maq-card-body';
   body.id = `body_${idx}`;
@@ -1244,11 +1267,26 @@ function adicionarLinha(bodyId, idx) {
   salvarEstado();
 }
 
+function adicionarLinhaTryOut(bodyId, idx) {
+  document.getElementById(bodyId).appendChild(criarLinha(idx));
+  incrementarTryOut();
+  salvarEstado();
+}
+
 function incrementarSetUp() {
   const su = document.getElementById('setUpsInput');
   if (!su) return;
   const atual = parseInt(su.value, 10) || 0;
   su.value = atual + 1;
+  sincronizarSpans();
+  if (typeof calcularTotal === 'function') calcularTotal();
+}
+
+function incrementarTryOut() {
+  const to = document.getElementById('tryOutInput');
+  if (!to) return;
+  const atual = parseInt(to.value, 10) || 0;
+  to.value = atual + 1;
   sincronizarSpans();
   if (typeof calcularTotal === 'function') calcularTotal();
 }
