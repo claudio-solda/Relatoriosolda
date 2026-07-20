@@ -1114,7 +1114,7 @@ function exportarCSV() {
   const data = document.getElementById('dataInput').value || '';
   const turnoSelecionado = document.querySelector('input[name="turno"]:checked')?.value || '1º';
 
-  let linhasCSV = [['Data','Turno','Maquina','Peca','Fase','Quantidade','Obs','Operador','Operador2','Retrabalho','Contencao']];
+  let linhasCSV = [['Data','Turno','Maquina','Peca','Fase','Quantidade','Obs','Operador','Operador2','OperadorPeca','Retrabalho','Contencao']];
   document.querySelectorAll('.maq-card').forEach(card => {
     const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
     const opRow = card.querySelector('.operador-row');
@@ -1127,8 +1127,9 @@ function exportarCSV() {
       const qtd  = bloco.querySelector('.qtd-input')?.value || '';
       const obs  = bloco.querySelector('.obs-input')?.value || '';
       const contencao = bloco.querySelector('.contencao-item-input')?.value || '';
+      const operadorPeca = bloco.querySelector('.peca-operador-input')?.value || '';
       if (peca || (qtd && qtd !== '0')) {
-        linhasCSV.push([data, turnoSelecionado, nome, peca, fase, qtd, obs, operador, operador2, retrabalho, contencao]);
+        linhasCSV.push([data, turnoSelecionado, nome, peca, fase, qtd, obs, operador, operador2, operadorPeca, retrabalho, contencao]);
       }
     });
   });
@@ -1292,6 +1293,11 @@ function criarLinha(maqId) {
       <button class="btn-remove" onclick="this.closest('.peca-bloco').remove(); salvarEstado();">✕</button>
     </div>
     <div class="peca-contencao-row">
+      <div class="field-group">
+        <label>Trocar Operador</label>
+        <input type="text" list="operadoresList" placeholder="Se mudou" class="peca-operador-input" onchange="salvarEstado()">
+        <span class="val-span"></span>
+      </div>
       <div class="field-group">
         <label>Contenção</label>
         <input type="text" placeholder="Se houver" class="contencao-item-input">
@@ -1510,7 +1516,8 @@ function coletarEstado() {
         fase: bloco.querySelector('.fase-input')?.value || '',
         qtd: bloco.querySelector('.qtd-input')?.value || '',
         obs: bloco.querySelector('.obs-input')?.value || '',
-        contencao: bloco.querySelector('.contencao-item-input')?.value || ''
+        contencao: bloco.querySelector('.contencao-item-input')?.value || '',
+        operadorPeca: bloco.querySelector('.peca-operador-input')?.value || ''
       });
     });
     estado.maquinas[idx] = linhas;
@@ -1589,6 +1596,8 @@ function restaurarEstado() {
       bloco.querySelector('.obs-input').value = dados.obs || '';
       const contInput = bloco.querySelector('.contencao-item-input');
       if (contInput) contInput.value = dados.contencao || '';
+      const opPecaInput = bloco.querySelector('.peca-operador-input');
+      if (opPecaInput) opPecaInput.value = dados.operadorPeca || '';
     });
   });
 
@@ -1736,8 +1745,9 @@ function enviarWhatsApp() {
       const qtd  = bloco.querySelector('.qtd-input')?.value || '';
       const obs  = bloco.querySelector('.obs-input')?.value || '';
       const contencao = bloco.querySelector('.contencao-item-input')?.value || '';
+      const operadorPeca = bloco.querySelector('.peca-operador-input')?.value || '';
       if (peca || (qtd && qtd !== '0')) {
-        pecasDoCard.push({ peca, fase, qtd, obs, contencao });
+        pecasDoCard.push({ peca, fase, qtd, obs, contencao, operadorPeca });
       }
     });
 
@@ -1747,7 +1757,12 @@ function enviarWhatsApp() {
       if (operador) linhas.push(gerarQuadradoNome(operador));
       if (operador2) linhas.push(gerarQuadradoNome(operador2));
       linhas.push(`🔹 *${nome}*`);
+      let operadorAtivo = operador;
       pecasDoCard.forEach(p => {
+        if (p.operadorPeca && p.operadorPeca !== operadorAtivo) {
+          linhas.push(gerarQuadradoNome(p.operadorPeca));
+          operadorAtivo = p.operadorPeca;
+        }
         linhas.push(`    ${p.peca || '-'}${p.fase ? ' | F: '+p.fase : ''} | Qtd: ${p.qtd || '0'}${p.obs ? ' - '+p.obs : ''}`);
         if (p.contencao) linhas.push(`        🦺 Contenção: ${p.contencao}`);
       });
