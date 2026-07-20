@@ -12,6 +12,7 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>Claudio Solda — Relatório</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
 
@@ -62,6 +63,32 @@
   }
   #btnInstalar { background: #4a90d9; color: white; }
   #btnFecharBanner { background: rgba(255,255,255,0.15); color: white; }
+
+  /* ── BANNER LEMBRETE DE BACKUP ── */
+  #backupBanner {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #2f7d4f;
+    color: white;
+    padding: 12px 16px 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 9999;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 -3px 16px rgba(0,0,0,0.25);
+  }
+  #backupBanner.show { display: flex; }
+  #backupBanner p { flex: 1; font-size: 0.85rem; line-height: 1.3; }
+  #backupBanner p strong { display: block; font-size: 0.95rem; }
+  #backupBanner button {
+    border: none; border-radius: 8px; padding: 9px 16px;
+    font-weight: 700; cursor: pointer; font-family: 'Barlow', sans-serif;
+    font-size: 0.82rem; white-space: nowrap;
+  }
+  #btnBackupAgora { background: white; color: #2f7d4f; }
+  #btnFecharBackupBanner { background: rgba(255,255,255,0.15); color: white; }
+  body.modo-foto #backupBanner { display: none !important; }
 
   /* ── TOAST OFFLINE ── */
   #toastOffline {
@@ -503,7 +530,7 @@
     @page { margin: 5mm; size: A4 portrait; }
     html, body { background: white !important; padding: 0 !important; }
     .top-bar { display: none !important; }
-    #installBanner, #toastOffline, #toastOnline { display: none !important; }
+    #installBanner, #backupBanner, #toastOffline, #toastOnline { display: none !important; }
     .btn-plus, .btn-remove, .btn-tryout { display: none !important; }
     .content { padding: 4px !important; gap: 4px !important; max-width: 100% !important; }
     .maq-card { break-inside: avoid !important; box-shadow: none !important; border: 1px solid #aaa !important; }
@@ -734,6 +761,13 @@
   <button id="btnFecharBanner">✕</button>
 </div>
 
+<!-- BANNER LEMBRETE DE BACKUP -->
+<div id="backupBanner">
+  <p><strong>💾 Backup de hoje ainda não feito</strong>Salve seus dados pra não perder nada</p>
+  <button id="btnBackupAgora">Fazer agora</button>
+  <button id="btnFecharBackupBanner">✕</button>
+</div>
+
 <div class="header" id="cabecalho">
   <h1><span class="gear">⚙</span>Claudio Solda</h1>
   <p>Relatório Diário da Solda</p>
@@ -752,6 +786,7 @@
   <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="mostrarRelatorioOperadores()">📊 Relatório Operadores</button>
   <button class="btn-top" style="background:#1e6b5c;color:#fff;" onclick="enviarResumoSemanal()">📈 Resumo Semanal</button>
   <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="exportarCSV()">📄 CSV</button>
+  <button class="btn-top" style="background:#8a4b2f;color:#fff;" onclick="gerarPDFMensal()">📕 PDF Mensal</button>
   <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="backupDrive()">☁️ Backup</button>
   <button class="btn-top" style="background:#6a5b9c;color:#fff;" onclick="abrirAjuda()">ℹ️ Ajuda</button>
   <button class="btn-top" style="background:#a33;color:#fff;" onclick="novoRelatorio()">🗑️ Novo</button>
@@ -1160,6 +1195,122 @@ function baixarArquivo(blob, nomeArquivo) {
 }
 
 // ── FEATURE: Backup manual (compartilha um JSON com o rascunho do dia) ──
+// ── FEATURE: Relatório Mensal em PDF ──
+function gerarPDFMensal() {
+  if (typeof window.jspdf === 'undefined') {
+    alert('Aguarde 2 segundos e tente novamente (carregando gerador de PDF).');
+    return;
+  }
+  const dataRef = document.getElementById('dataInput')?.value;
+  if (!dataRef) { alert('Selecione a data primeiro.'); return; }
+
+  const [ano, mesNum] = dataRef.split('-').map(Number);
+  const nomesMeses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const nomeMes = nomesMeses[mesNum - 1];
+  const ultimoDia = new Date(ano, mesNum, 0).getDate();
+
+  let historicoTotais, historicoOps;
+  try { historicoTotais = JSON.parse(localStorage.getItem(HISTORICO_TOTAL_KEY)) || {}; } catch (e) { historicoTotais = {}; }
+  try { historicoOps = JSON.parse(localStorage.getItem(HISTORICO_OPERADORES_KEY)) || {}; } catch (e) { historicoOps = {}; }
+
+  const linhasDias = [];
+  let totalMes = 0;
+  let diasComDados = 0;
+  const contagemContencoesMes = {};
+
+  for (let dia = 1; dia <= ultimoDia; dia++) {
+    const diaISO = `${ano}-${String(mesNum).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+    const total = historicoTotais[diaISO];
+    if (total !== undefined) {
+      totalMes += total;
+      diasComDados++;
+      linhasDias.push(`${String(dia).padStart(2,'0')}/${String(mesNum).padStart(2,'0')}    ${total} pçs`);
+    }
+    const doDia = historicoOps[diaISO];
+    if (doDia) {
+      Object.values(doDia).forEach(reg => {
+        if (reg.contencoes && reg.contencoes.length > 0) {
+          contagemContencoesMes[reg.nome] = (contagemContencoesMes[reg.nome] || 0) + 1;
+        }
+      });
+    }
+  }
+
+  if (diasComDados === 0) {
+    alert(`Ainda não há relatórios enviados em ${nomeMes}/${ano} pra gerar o PDF.`);
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const margem = 18;
+  let y = 22;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('RELATÓRIO MENSAL — SOLDA', margem, y);
+  y += 8;
+  doc.setFontSize(12);
+  doc.text(`${nomeMes} / ${ano}`, margem, y);
+  y += 10;
+
+  doc.setDrawColor(200);
+  doc.line(margem, y, 210 - margem, y);
+  y += 8;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('Produção por dia', margem, y);
+  y += 7;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  linhasDias.forEach(linha => {
+    if (y > 275) { doc.addPage(); y = 20; }
+    doc.text(linha, margem, y);
+    y += 6;
+  });
+
+  y += 4;
+  if (y > 270) { doc.addPage(); y = 20; }
+  doc.setDrawColor(200);
+  doc.line(margem, y, 210 - margem, y);
+  y += 8;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text(`Total do mês: ${totalMes} pçs`, margem, y);
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Média diária: ${(totalMes / diasComDados).toFixed(0)} pçs (${diasComDados} dia(s) com registro)`, margem, y);
+  y += 10;
+
+  const maqsComContencao = Object.keys(contagemContencoesMes).sort((a,b) => contagemContencoesMes[b] - contagemContencoesMes[a]);
+  if (maqsComContencao.length > 0) {
+    if (y > 260) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Máquinas com mais contenção no mês', margem, y);
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    maqsComContencao.forEach(m => {
+      if (y > 275) { doc.addPage(); y = 20; }
+      doc.text(`${m} — ${contagemContencoesMes[m]} dia(s)`, margem, y);
+      y += 6;
+    });
+  }
+
+  y += 8;
+  if (y > 275) { doc.addPage(); y = 20; }
+  doc.setFontSize(8.5);
+  doc.setTextColor(140);
+  doc.text('App exclusivo criado por Claudio © — Relatório de Solda', margem, y);
+  y += 5;
+  doc.text(gerarAssinatura(), margem, y);
+
+  doc.save(`relatorio_mensal_${String(mesNum).padStart(2,'0')}-${ano}.pdf`);
+}
+
 function backupDrive() {
   salvarEstado();
   const dados = coletarEstado();
@@ -1172,14 +1323,42 @@ function backupDrive() {
     const file = new File([blob], nomeArquivo, { type: 'application/json' });
     if (navigator.canShare({ files: [file] })) {
       navigator.share({ files: [file], title: 'Backup Relatório de Solda' })
-        .then(() => alert('Compartilhado! Escolha o Google Drive na lista pra salvar.'))
+        .then(() => { alert('Compartilhado! Escolha o Google Drive na lista pra salvar.'); marcarBackupFeitoHoje(); })
         .catch(() => baixarArquivo(blob, nomeArquivo));
       return;
     }
   }
   baixarArquivo(blob, nomeArquivo);
+  marcarBackupFeitoHoje();
   alert('Arquivo baixado. Envie manualmente pro Google Drive pelo app de Arquivos ou pelo próprio Drive.');
 }
+
+// ── LEMBRETE DIÁRIO DE BACKUP ──
+// Obs.: o navegador não deixa fazer upload/compartilhamento silencioso sem toque do usuário,
+// então o "automático" aqui é: o app lembra sozinho 1x por dia e o backup sai com 1 toque.
+const BACKUP_LEMBRETE_KEY = 'solda_backup_ultima_data';
+
+function marcarBackupFeitoHoje() {
+  const hoje = new Date().toISOString().split('T')[0];
+  localStorage.setItem(BACKUP_LEMBRETE_KEY, hoje);
+  document.getElementById('backupBanner')?.classList.remove('show');
+}
+
+function verificarLembreteBackup() {
+  const hoje = new Date().toISOString().split('T')[0];
+  const ultima = localStorage.getItem(BACKUP_LEMBRETE_KEY);
+  if (ultima !== hoje) {
+    document.getElementById('backupBanner')?.classList.add('show');
+  }
+}
+
+document.getElementById('btnBackupAgora')?.addEventListener('click', () => {
+  backupDrive();
+});
+document.getElementById('btnFecharBackupBanner')?.addEventListener('click', () => {
+  document.getElementById('backupBanner')?.classList.remove('show');
+});
+setTimeout(verificarLembreteBackup, 1500);
 
 // ── Modal de Ajuda / Funcionalidades ──
 function abrirAjuda() {
@@ -1871,7 +2050,8 @@ function salvarFoto() {
         <li>Salvar como imagem (foto do relatório)</li>
         <li>Modo Print (visual pra impressão)</li>
         <li>Exportar CSV do dia</li>
-        <li>Backup manual (compartilhar/Google Drive)</li>
+        <li>Relatório Mensal em PDF (produção por dia + máquinas com mais contenção no mês)</li>
+        <li>Backup manual (compartilhar/Google Drive) + lembrete automático 1x por dia se ainda não fez</li>
         <li>Campo "Conferido por" (responsável do turno) + assinatura automática com data/hora do envio</li>
       </ol>
 
