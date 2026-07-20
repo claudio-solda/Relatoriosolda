@@ -261,6 +261,14 @@
     letter-spacing: 1px;
     text-transform: uppercase;
   }
+  .maq-card-header-titulo { min-width: 0; }
+  .maq-ontem {
+    font-size: 0.68rem;
+    color: #a8c4e8;
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+  }
+  body.modo-foto .maq-ontem { display: none; }
   .btn-plus {
     background: rgba(255,255,255,0.18);
     border: 1.5px solid rgba(255,255,255,0.4);
@@ -742,6 +750,7 @@
   <button class="btn-top btn-whats" onclick="enviarWhatsApp()">🟢 WhatsApp</button>
   <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="repetirOperadoresDeOntem()">🔁 Operadores de Ontem</button>
   <button class="btn-top" style="background:#5b6f8c;color:#fff;" onclick="mostrarRelatorioOperadores()">📊 Relatório Operadores</button>
+  <button class="btn-top" style="background:#1e6b5c;color:#fff;" onclick="enviarResumoSemanal()">📈 Resumo Semanal</button>
   <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="exportarCSV()">📄 CSV</button>
   <button class="btn-top" style="background:#2f7d4f;color:#fff;" onclick="backupDrive()">☁️ Backup</button>
   <button class="btn-top" style="background:#6a5b9c;color:#fff;" onclick="abrirAjuda()">ℹ️ Ajuda</button>
@@ -870,8 +879,15 @@ function salvarOperadoresDoDia(dataISO) {
     const contencoes = Array.from(card.querySelectorAll('.contencao-item-input'))
       .map(i => i.value || '')
       .filter(v => v);
-    if (operador || operador2 || retrabalho || contencoes.length > 0) {
-      doDia[idx] = { nome, operador, operador2, retrabalho, contencoes };
+    const pecas = [];
+    card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
+      const peca = bloco.querySelector('.peca-input')?.value || '';
+      const fase = bloco.querySelector('.fase-input')?.value || '';
+      const qtd  = bloco.querySelector('.qtd-input')?.value || '';
+      if (peca || (qtd && qtd !== '0')) pecas.push({ peca, fase, qtd });
+    });
+    if (operador || operador2 || retrabalho || contencoes.length > 0 || pecas.length > 0) {
+      doDia[idx] = { nome, operador, operador2, retrabalho, contencoes, pecas };
     }
   });
   historico[dataISO] = doDia;
@@ -882,6 +898,30 @@ function getHistoricoOperadores() {
   try {
     return JSON.parse(localStorage.getItem(HISTORICO_OPERADORES_KEY)) || {};
   } catch (e) { return {}; }
+}
+
+// ── HISTÓRICO RÁPIDO DO DIA ANTERIOR (badge no card da máquina) ──
+function atualizarHistoricoOntem() {
+  const data = document.getElementById('dataInput')?.value;
+  if (!data) return;
+  const d = new Date(data);
+  d.setDate(d.getDate() - 1);
+  const ontemISO = d.toISOString().split('T')[0];
+  const ontemFmt = ontemISO.split('-').reverse().join('/');
+  const historico = getHistoricoOperadores();
+  const doDia = historico[ontemISO] || {};
+  document.querySelectorAll('.maq-card').forEach((card, idx) => {
+    const el = document.getElementById(`ontem_${idx}`);
+    if (!el) return;
+    const reg = doDia[idx];
+    if (!reg || !reg.pecas || reg.pecas.length === 0) {
+      el.textContent = '';
+      return;
+    }
+    const totalQtd = reg.pecas.reduce((soma, p) => soma + (parseFloat(p.qtd) || 0), 0);
+    const fases = [...new Set(reg.pecas.map(p => p.fase).filter(f => f))];
+    el.textContent = `📅 Ontem (${ontemFmt}): ${totalQtd} pçs${fases.length ? ' | F: ' + fases.join('/') : ''}`;
+  });
 }
 
 // ── FEATURE 2: Alerta de operador não preenchido ──
@@ -989,12 +1029,83 @@ function mostrarRelatorioOperadores() {
   alert(texto);
 }
 
+// ── FEATURE: Resumo Semanal automático ──
+function enviarResumoSemanal() {
+  const dataRef = document.getElementById('dataInput')?.value;
+  if (!dataRef) { alert('Selecione a data primeiro.'); return; }
+
+  let historicoTotais, historicoOps;
+  try { historicoTotais = JSON.parse(localStorage.getItem(HISTORICO_TOTAL_KEY)) || {}; } catch (e) { historicoTotais = {}; }
+  try { historicoOps = JSON.parse(localStorage.getItem(HISTORICO_OPERADORES_KEY)) || {}; } catch (e) { historicoOps = {}; }
+
+  // Monta os 7 dias terminando na data selecionada
+  const dias = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(dataRef);
+    d.setDate(d.getDate() - i);
+    dias.push(d.toISOString().split('T')[0]);
+  }
+
+  let totalSemana = 0;
+  let diasComDados = 0;
+  const linhasDias = [];
+  const contagemContencoesSemana = {};
+
+  dias.forEach(diaISO => {
+    const totalDia = historicoTotais[diaISO];
+    const diaFmt = diaISO.split('-').reverse().join('/');
+    if (totalDia !== undefined) {
+      totalSemana += totalDia;
+      diasComDados++;
+      linhasDias.push(`    ${diaFmt}: ${totalDia} pçs`);
+    } else {
+      linhasDias.push(`    ${diaFmt}: —`);
+    }
+
+    const doDia = historicoOps[diaISO];
+    if (doDia) {
+      Object.values(doDia).forEach(reg => {
+        const temContencao = (reg.contencoes && reg.contencoes.length > 0);
+        if (temContencao) contagemContencoesSemana[reg.nome] = (contagemContencoesSemana[reg.nome] || 0) + 1;
+      });
+    }
+  });
+
+  if (diasComDados === 0) {
+    alert('Ainda não há relatórios enviados nessa semana pra gerar o resumo.');
+    return;
+  }
+
+  const media = (totalSemana / diasComDados).toFixed(0);
+
+  let msg = `📈 *RESUMO SEMANAL — SOLDA*\n`;
+  msg += `📅 ${dias[0].split('-').reverse().join('/')} a ${dias[6].split('-').reverse().join('/')}\n\n`;
+  msg += `*PRODUÇÃO POR DIA:*\n${linhasDias.join('\n')}\n\n`;
+  msg += `✅ *Total da semana: ${totalSemana} pçs*\n`;
+  msg += `📊 Média diária: ${media} pçs (${diasComDados} dia(s) com registro)\n`;
+
+  const maqsComContencao = Object.keys(contagemContencoesSemana).sort((a,b) => contagemContencoesSemana[b] - contagemContencoesSemana[a]);
+  if (maqsComContencao.length > 0) {
+    msg += `\n🦺 *Máquinas com mais contenção na semana:*\n`;
+    maqsComContencao.slice(0, 5).forEach(m => {
+      msg += `    • ${m} — ${contagemContencoesSemana[m]} dia(s)\n`;
+    });
+  }
+
+  msg += `\n_App exclusivo criado por Claudio © — Relatório de Solda_`;
+  msg += `\n${gerarAssinatura()}`;
+
+  const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
 // ── Assinatura do envio ──
 function gerarAssinatura() {
   const agora = new Date();
   const dataHora = agora.toLocaleDateString('pt-BR') + ' ' +
     agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-  return `Claudio Roberto — enviado em ${dataHora}`;
+  const responsavel = document.getElementById('responsavelInput')?.value.trim() || 'Claudio Roberto';
+  return `✍️ Conferido por: ${responsavel} — enviado em ${dataHora}`;
 }
 
 // ── FEATURE: Exportar CSV do dia ──
@@ -1250,7 +1361,7 @@ function criarCard(maq, idx) {
   card.className = 'maq-card';
   const header = document.createElement('div');
   header.className = 'maq-card-header';
-  header.innerHTML = `<h3>${maq}</h3><div class="maq-card-header-btns"><button class="btn-plus" onclick="adicionarLinha('body_${idx}', ${idx})">+</button><button class="btn-tryout" onclick="adicionarLinhaTryOut('body_${idx}', ${idx})" title="Try Out">✳</button></div>`;
+  header.innerHTML = `<div class="maq-card-header-titulo"><h3>${maq}</h3><div class="maq-ontem" id="ontem_${idx}"></div></div><div class="maq-card-header-btns"><button class="btn-plus" onclick="adicionarLinha('body_${idx}', ${idx})">+</button><button class="btn-tryout" onclick="adicionarLinhaTryOut('body_${idx}', ${idx})" title="Try Out">✳</button></div>`;
   const body = document.createElement('div');
   body.className = 'maq-card-body';
   body.id = `body_${idx}`;
@@ -1293,6 +1404,8 @@ function incrementarTryOut() {
 
 const content = document.getElementById('mainContent');
 maquinas.forEach((maq, idx) => content.appendChild(criarCard(maq, idx)));
+setTimeout(atualizarHistoricoOntem, 0);
+document.getElementById('dataInput').addEventListener('change', atualizarHistoricoOntem);
 
 // Card totais
 const totaisCard = document.createElement('div');
@@ -1318,6 +1431,11 @@ totaisCard.innerHTML = `
       <label>🎯 Meta do Dia</label>
       <input type="number" min="0" placeholder="0" id="metaInput">
       <span class="val-span" id="metaSpan"></span>
+    </div>
+    <div class="total-row-item">
+      <label>✍️ Conferido por</label>
+      <input type="text" placeholder="Nome do responsável" id="responsavelInput" style="width:auto; flex:1; text-align:left; font-weight:600;">
+      <span class="val-span" id="responsavelSpan"></span>
     </div>
     <div class="total-row-item" style="border-top:1.5px dashed var(--border); margin-top:6px; padding-top:10px;">
       <label>🔐 Cód. Verificação</label>
@@ -1371,7 +1489,7 @@ const STORAGE_KEY = 'solda_relatorio_rascunho_v1';
 let salvarTimeout = null;
 
 function coletarEstado() {
-  const estado = { data: document.getElementById('dataInput').value, turno: document.querySelector('input[name="turno"]:checked')?.value || '1º', setups: document.getElementById('setUpsInput')?.value || '', tryouts: document.getElementById('tryOutInput')?.value || '', meta: document.getElementById('metaInput')?.value || '', maquinas: {} };
+  const estado = { data: document.getElementById('dataInput').value, turno: document.querySelector('input[name="turno"]:checked')?.value || '1º', setups: document.getElementById('setUpsInput')?.value || '', tryouts: document.getElementById('tryOutInput')?.value || '', meta: document.getElementById('metaInput')?.value || '', responsavel: document.getElementById('responsavelInput')?.value || '', maquinas: {} };
   estado.operadores = {};
   document.querySelectorAll('.maq-card').forEach((card, idx) => {
     const linhas = [];
@@ -1439,6 +1557,7 @@ function restaurarEstado() {
   if (salvo.setups !== undefined) document.getElementById('setUpsInput').value = salvo.setups;
   if (salvo.tryouts !== undefined) document.getElementById('tryOutInput').value = salvo.tryouts;
   if (salvo.meta !== undefined) document.getElementById('metaInput').value = salvo.meta;
+  if (salvo.responsavel !== undefined) document.getElementById('responsavelInput').value = salvo.responsavel;
 
   Object.keys(salvo.maquinas || {}).forEach(idx => {
     const linhasSalvas = salvo.maquinas[idx];
@@ -1520,9 +1639,11 @@ function sincronizarSpans() {
   const su = document.getElementById('setUpsInput');
   const to = document.getElementById('tryOutInput');
   const me = document.getElementById('metaInput');
+  const re = document.getElementById('responsavelInput');
   document.getElementById('setUpsSpan').textContent = su ? su.value : '';
   document.getElementById('tryOutSpan').textContent = to ? to.value : '';
   document.getElementById('metaSpan').textContent = me ? me.value : '';
+  document.getElementById('responsavelSpan').textContent = re ? re.value : '';
 }
 
 function fazerPrint() {
@@ -1728,6 +1849,8 @@ function salvarFoto() {
         <li>Meta do Dia com barra visual de progresso (▰▱) no WhatsApp</li>
         <li>Código de verificação único (CS-XXXX)</li>
         <li>25 frases inspiradoras rotativas</li>
+        <li>Histórico rápido do dia anterior por máquina (badge no card, só na tela)</li>
+        <li>Resumo Semanal automático (produção por dia + máquinas com mais contenção)</li>
       </ol>
 
       <h3>👤 Operadores</h3>
@@ -1749,7 +1872,7 @@ function salvarFoto() {
         <li>Modo Print (visual pra impressão)</li>
         <li>Exportar CSV do dia</li>
         <li>Backup manual (compartilhar/Google Drive)</li>
-        <li>Assinatura automática (nome + data/hora do envio)</li>
+        <li>Campo "Conferido por" (responsável do turno) + assinatura automática com data/hora do envio</li>
       </ol>
 
       <h3>⚙️ Sistema</h3>
