@@ -1473,6 +1473,25 @@ document.getElementById('numeroRelDisplay').textContent = String(numeroRelatorio
 // ── FASE POR CÓDIGO DE PEÇA (lembra a última fase usada por código) ──
 const FASE_POR_CODIGO_KEY = 'solda_fase_por_codigo';
 
+// ── ÚLTIMO RESPONSÁVEL (lembra o nome de "Conferido por" entre relatórios) ──
+const NOME_RESPONSAVEL_KEY = 'solda_ultimo_responsavel';
+
+function salvarNomeResponsavel() {
+  const input = document.getElementById('responsavelInput');
+  const nome = input ? input.value.trim() : '';
+  if (nome) localStorage.setItem(NOME_RESPONSAVEL_KEY, nome);
+}
+
+function autoPreencherResponsavel() {
+  const input = document.getElementById('responsavelInput');
+  if (!input || input.value.trim()) return; // já tem valor (rascunho do dia), não sobrescreve
+  const ultimo = localStorage.getItem(NOME_RESPONSAVEL_KEY);
+  if (ultimo) {
+    input.value = ultimo;
+    sincronizarSpans();
+  }
+}
+
 function getFaseMap() {
   try {
     return JSON.parse(localStorage.getItem(FASE_POR_CODIGO_KEY)) || {};
@@ -1631,6 +1650,8 @@ document.querySelectorAll('input[name="turno"]').forEach(r => r.addEventListener
 
 // Restaura rascunho salvo (se existir) assim que a tela é montada
 restaurarEstado();
+autoPreencherResponsavel();
+document.getElementById('responsavelInput')?.addEventListener('input', salvarNomeResponsavel);
 
 function calcularTotal() {
   let total = 0;
