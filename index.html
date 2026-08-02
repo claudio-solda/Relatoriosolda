@@ -596,11 +596,18 @@
     <div id="lockErr999" style="font-size:12px;color:#ffd6d6;height:14px;"></div>
     <button id="pwEnterBtn999" type="button" style="padding:12px 26px;border-radius:10px;border:none;background:#fff;color:#111;font-weight:700;cursor:pointer;">Entrar</button>
     <button id="switchToDigitalBtn999" type="button" style="display:none;background:transparent;color:#cbd5e1;font-size:12px;border:1px solid rgba(255,255,255,.3);padding:8px 14px;border-radius:10px;cursor:pointer;">Usar digital</button>
+    <a href="#" id="forgotPwLink999" style="font-size:12px;color:#cbd5e1;text-decoration:underline;margin-top:4px;">Esqueci minha senha</a>
+    <div id="forgotArea999" style="display:none;flex-direction:column;align-items:center;gap:8px;margin-top:6px;">
+      <input type="password" id="masterPwInput999" placeholder="Senha mestra" style="width:180px;text-align:center;font-size:14px;padding:9px;border-radius:10px;border:none;">
+      <button id="masterPwBtn999" type="button" style="padding:9px 20px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-weight:700;cursor:pointer;font-size:13px;">Revelar senha</button>
+      <div id="revealMsg999" style="font-size:13px;color:#a7f3d0;min-height:16px;"></div>
+    </div>
   </div>
 </div>
 <script>
 (function(){
   var PASSWORD = 'Cacau249';
+  var MASTER_PASSWORD = '0198';
   var DIGITAL_KEY = 'claudio_relatorio_digital_cred_id';
   var lockScreen = document.getElementById('lockScreen999');
   var digitalArea = document.getElementById('digitalArea999');
@@ -626,11 +633,27 @@
   document.getElementById('switchToDigitalBtn999').addEventListener('click', showDigitalMode);
 
   function tryUnlock999(){
-    if (pwInput.value === PASSWORD){ unlockApp999(); }
+    if (pwInput.value === PASSWORD || pwInput.value === MASTER_PASSWORD){ unlockApp999(); }
     else { lockErr.textContent = 'Senha incorreta'; }
   }
   document.getElementById('pwEnterBtn999').addEventListener('click', tryUnlock999);
   pwInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') tryUnlock999(); });
+
+  var forgotArea = document.getElementById('forgotArea999');
+  var revealMsg = document.getElementById('revealMsg999');
+  document.getElementById('forgotPwLink999').addEventListener('click', function(e){
+    e.preventDefault();
+    forgotArea.style.display = forgotArea.style.display === 'flex' ? 'none' : 'flex';
+  });
+  document.getElementById('masterPwBtn999').addEventListener('click', function(){
+    var mp = document.getElementById('masterPwInput999').value;
+    if (mp === MASTER_PASSWORD){
+      revealMsg.textContent = 'Sua senha é: ' + PASSWORD;
+    } else {
+      revealMsg.style.color = '#ffd6d6';
+      revealMsg.textContent = 'Senha mestra incorreta';
+    }
+  });
 
   function b64urlToBuf(b64url){
     var b64 = b64url.replace(/-/g,'+').replace(/_/g,'/');
