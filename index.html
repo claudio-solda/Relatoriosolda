@@ -333,7 +333,9 @@
   .peca-contencao-row {
     display: flex;
     gap: 6px;
+    flex-wrap: wrap;
   }
+  .peca-contencao-row .field-group { min-width: 90px; }
   .peca-contencao-row .field-group input { font-size: 0.9rem; font-weight: 600; }
   .peca-contencao-row .field-group label { color: var(--accent); }
   .field-group {
@@ -1141,7 +1143,7 @@ function exportarCSV() {
   const data = document.getElementById('dataInput').value || '';
   const turnoSelecionado = document.querySelector('input[name="turno"]:checked')?.value || '1º';
 
-  let linhasCSV = [['Data','Turno','Maquina','Peca','Fase','Quantidade','Obs','Operador','Operador2','OperadorPeca','Retrabalho','Contencao']];
+  let linhasCSV = [['Data','Turno','Maquina','Peca','Fase','Quantidade','Obs','Operador','Operador2','OperadorPeca','Retrabalho','Contencao1','Contencao2']];
   document.querySelectorAll('.maq-card').forEach(card => {
     const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
     const opRow = card.querySelector('.operador-row');
@@ -1153,10 +1155,11 @@ function exportarCSV() {
       const fase = bloco.querySelector('.fase-input')?.value || '';
       const qtd  = bloco.querySelector('.qtd-input')?.value || '';
       const obs  = bloco.querySelector('.obs-input')?.value || '';
-      const contencao = bloco.querySelector('.contencao-item-input')?.value || '';
+      const contencao1 = bloco.querySelector('.contencao1-input')?.value || '';
+      const contencao2 = bloco.querySelector('.contencao2-input')?.value || '';
       const operadorPeca = bloco.querySelector('.peca-operador-input')?.value || '';
       if (peca || (qtd && qtd !== '0')) {
-        linhasCSV.push([data, turnoSelecionado, nome, peca, fase, qtd, obs, operador, operador2, operadorPeca, retrabalho, contencao]);
+        linhasCSV.push([data, turnoSelecionado, nome, peca, fase, qtd, obs, operador, operador2, operadorPeca, retrabalho, contencao1, contencao2]);
       }
     });
   });
@@ -1272,8 +1275,10 @@ window.addEventListener('online',  () => mostrarToast('toastOnline', 3000));
 const maquinas = [
   "MS001","MS002","MS003","MS004","MS005","MS006","MS007","MS008",
   "Multi Ponto 009","MS010","MS011","MS012","MS013",
-  "MS014/MS015","Rebitadeira","Robo","Mont.1","Mont.2"
+  "MS014/MS015","Rebitadeira","Robo","Mont.1","Mont.2","Mig 002","Mesa"
 ];
+
+const PECA_FIXA_MESA = '0128400';
 
 const hoje = new Date().toISOString().split('T')[0];
 document.getElementById('dataInput').value = hoje;
@@ -1293,6 +1298,11 @@ let contadores = {};
 function criarLinha(maqId) {
   if (!contadores[maqId]) contadores[maqId] = 0;
   contadores[maqId]++;
+
+  if (maquinas[maqId] === 'Mesa') {
+    return criarLinhaMesa();
+  }
+
   const bloco = document.createElement('div');
   bloco.className = 'peca-bloco';
   bloco.innerHTML = `
@@ -1326,10 +1336,47 @@ function criarLinha(maqId) {
         <span class="val-span"></span>
       </div>
       <div class="field-group">
-        <label>Contenção</label>
-        <input type="text" placeholder="Se houver" class="contencao-item-input">
+        <label>Contenção 1</label>
+        <input type="text" placeholder="Se houver" class="contencao-item-input contencao1-input">
         <span class="val-span"></span>
       </div>
+      <div class="field-group">
+        <label>Contenção 2</label>
+        <input type="text" placeholder="Se trocou" class="contencao-item-input contencao2-input">
+        <span class="val-span"></span>
+      </div>
+    </div>
+  `;
+  return bloco;
+}
+
+// Bloco fixo da Mesa (oleação): peça e fase travadas, só Operador/Quantidade/Observação mudam
+function criarLinhaMesa() {
+  const bloco = document.createElement('div');
+  bloco.className = 'peca-bloco';
+  bloco.innerHTML = `
+    <div class="item-row">
+      <div class="field-group">
+        <label>Nº Peça</label>
+        <input type="text" class="peca-input" value="${PECA_FIXA_MESA}" readonly>
+        <span class="val-span"></span>
+      </div>
+      <div class="field-group fase">
+        <label>Fase</label>
+        <input type="text" class="fase-input" value="Olear" readonly>
+        <span class="val-span"></span>
+      </div>
+      <div class="field-group qty">
+        <label>Quantidade</label>
+        <input type="number" min="0" placeholder="Qtd" class="qtd-input">
+        <span class="val-span"></span>
+      </div>
+      <div class="field-group obs">
+        <label>Observação</label>
+        <input type="text" placeholder="..." class="obs-input">
+        <span class="val-span"></span>
+      </div>
+      <button class="btn-remove" onclick="this.closest('.peca-bloco').remove(); salvarEstado();">✕</button>
     </div>
   `;
   return bloco;
@@ -1562,7 +1609,8 @@ function coletarEstado() {
         fase: bloco.querySelector('.fase-input')?.value || '',
         qtd: bloco.querySelector('.qtd-input')?.value || '',
         obs: bloco.querySelector('.obs-input')?.value || '',
-        contencao: bloco.querySelector('.contencao-item-input')?.value || '',
+        contencao1: bloco.querySelector('.contencao1-input')?.value || '',
+        contencao2: bloco.querySelector('.contencao2-input')?.value || '',
         operadorPeca: bloco.querySelector('.peca-operador-input')?.value || ''
       });
     });
@@ -1640,8 +1688,10 @@ function restaurarEstado() {
       if (faseInput) faseInput.value = dados.fase || '';
       bloco.querySelector('.qtd-input').value = dados.qtd || '';
       bloco.querySelector('.obs-input').value = dados.obs || '';
-      const contInput = bloco.querySelector('.contencao-item-input');
-      if (contInput) contInput.value = dados.contencao || '';
+      const cont1Input = bloco.querySelector('.contencao1-input');
+      if (cont1Input) cont1Input.value = dados.contencao1 || '';
+      const cont2Input = bloco.querySelector('.contencao2-input');
+      if (cont2Input) cont2Input.value = dados.contencao2 || '';
       const opPecaInput = bloco.querySelector('.peca-operador-input');
       if (opPecaInput) opPecaInput.value = dados.operadorPeca || '';
     });
@@ -1792,10 +1842,11 @@ function enviarWhatsApp() {
       const fase = bloco.querySelector('.fase-input')?.value || '';
       const qtd  = bloco.querySelector('.qtd-input')?.value || '';
       const obs  = bloco.querySelector('.obs-input')?.value || '';
-      const contencao = bloco.querySelector('.contencao-item-input')?.value || '';
+      const contencao1 = bloco.querySelector('.contencao1-input')?.value || '';
+      const contencao2 = bloco.querySelector('.contencao2-input')?.value || '';
       const operadorPeca = bloco.querySelector('.peca-operador-input')?.value || '';
       if (peca || (qtd && qtd !== '0')) {
-        pecasDoCard.push({ peca, fase, qtd, obs, contencao, operadorPeca });
+        pecasDoCard.push({ peca, fase, qtd, obs, contencao1, contencao2, operadorPeca });
       }
     });
 
@@ -1812,7 +1863,8 @@ function enviarWhatsApp() {
           operadorAtivo = p.operadorPeca;
         }
         linhas.push(`    ${p.peca || '-'}${p.fase ? ' | F: '+p.fase : ''} | Qtd: ${p.qtd || '0'}${p.obs ? ' - '+p.obs : ''}`);
-        if (p.contencao) linhas.push(`        🦺 Contenção: ${p.contencao}`);
+        if (p.contencao1) linhas.push(`        🦺 Contenção 1: ${p.contencao1}`);
+        if (p.contencao2) linhas.push(`        🦺 Contenção 2: ${p.contencao2}`);
       });
       if (retrabalho) linhas.push(`    🔁 Retrabalho: ${retrabalho}`);
       linhas.push('');
@@ -1914,7 +1966,7 @@ function salvarFoto() {
 
       <h3>📋 Relatório e Produção</h3>
       <ol>
-        <li>Registro de produção por máquina (18 máquinas: MS001–MS015, Rebitadeira, Robô, Montagem 1 e 2)</li>
+        <li>Registro de produção por máquina (20 máquinas: MS001–MS015, Rebitadeira, Robô, Montagem 1 e 2, Mig 002, Mesa)</li>
         <li>Botão "+" pra adicionar múltiplas peças na mesma máquina</li>
         <li>Set Up automático (+1 sempre que adiciona uma peça nova)</li>
         <li>Try Out</li>
@@ -1931,7 +1983,8 @@ function salvarFoto() {
       <h3>👤 Operadores</h3>
       <ol start="10">
         <li>Campo Operador(a) com autocomplete (nomes cadastrados)</li>
-        <li>Campo Contenção por peça (texto livre, opcional, logo abaixo de cada Nº Peça)</li>
+        <li>Campos Contenção 1 e Contenção 2 por peça (texto livre, opcional, logo abaixo de cada Nº Peça — permite registrar troca de quem deu contenção)</li>
+        <li>Mesa fixa de oleação (peça 0128400, fase Olear) com campos Operador, Quantidade e Observação</li>
         <li>Campo Fase por peça (10 a 90), lembra automaticamente a última fase usada por código</li>
         <li>MS014/MS015 com 3 campos (Operador 1, Operador 2, Retrabalho)</li>
         <li>Alerta de operador não preenchido antes de enviar</li>
