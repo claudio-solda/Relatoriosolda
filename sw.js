@@ -1,4 +1,4 @@
-const CACHE_NAME = 'solda-v20';
+const CACHE_NAME = 'solda-v21';
 const ASSETS = [
   './',
   './index.html',
