@@ -810,33 +810,59 @@
 <div class="content" id="mainContent"></div>
 
 <script>
-// ── FRASES ROTATIVAS (uma por dia, sem repetir por 25 dias) ──
+// ── FRASES ROTATIVAS (uma por dia, sem repetir por 51 dias) ──
 const FRASES_RODAPE = [
-  "Ninguém constrói nada sozinho... seja ponte, não muro.",
-  "Quem constrói pontes atravessa junto; quem constrói muros fica sozinho do outro lado.",
-  "Toda obra que dura foi levantada por mãos que se ajudaram.",
-  "Ser ponte é escolher todo dia; ser muro é só deixar acontecer.",
-  "O que te feriu não precisa te definir — você pode escolher construir.",
-  "Deus não dorme, e o que Ele começa em você, Ele termina.",
-  "Uma ponte não esconde o rio, ela ensina a atravessá-lo.",
-  "Grandes obras começam com pequenos gestos de quem decide ajudar.",
-  "Não existe equipe forte onde cada um constrói seu próprio muro.",
-  "A força de um time não está na perfeição, está na união.",
-  "Quem planta pontes colhe caminhos; quem planta muros colhe solidão.",
-  "Cada dia é uma nova chance de ser ponte pra alguém.",
-  "O trabalho bem feito de hoje é o alicerce da confiança de amanhã.",
-  "Ninguém chega longe carregando muro nas costas.",
-  "A fé move o que a força sozinha não consegue erguer.",
-  "Servir é a ponte mais forte que existe entre pessoas.",
-  "Onde há união, o impossível vira só mais um dia de trabalho.",
-  "Construir é coisa de quem acredita antes de ver o resultado.",
-  "O bom exemplo constrói pontes que nem palavras alcançam.",
-  "Quem ergue o outro também se ergue junto.",
-  "A verdadeira liderança é ponte: sustenta, não separa.",
-  "Firmeza não é dureza; é constância pra sustentar quem precisa.",
-  "O que parece pequeno hoje pode ser a base de algo grande amanhã.",
-  "Ninguém atravessa sozinho — por isso a ponte existe.",
-  "Fé e trabalho juntos constroem o que o tempo não derruba."
+  "Solda boa não aparece no relatório — aparece na peça que não volta.",
+  "Ninguém vê a faísca, mas todo mundo usa o que ela une.",
+  "Peça sem contenção é peça sem dono — aqui, cada máquina tem alguém que se importa.",
+  "Trabalho bem feito não pede aplauso, só continuidade.",
+  "Quem solda com atenção hoje evita retrabalho amanhã.",
+  "Não é o turno mais fácil que define a equipe, é o turno difícil bem resolvido.",
+  "Cada máquina rodando é uma prova de que alguém cuidou dela hoje.",
+  "Produção sem gente comprometida é só máquina ligada.",
+  "Ninguém atravessa o turno sozinho — por isso a equipe existe.",
+  "Hoje foi mais um dia em que vocês transformaram matéria-prima em confiança.",
+  "Contenção existe pra proteger o cliente; atenção existe pra proteger o trabalho de vocês.",
+  "O bom soldador não é o mais rápido, é o que não deixa passar o que não devia.",
+  "O relatório mostra números; o esforço de vocês não cabe nele.",
+  "Amanhã começa outro turno — e vocês já provaram que dão conta.",
+  "O que você solda hoje, alguém confia amanhã sem nem saber seu nome.",
+  "Trabalho de qualidade é aquele que você assinaria com seu próprio nome.",
+  "O barulho da máquina não abafa o cuidado de quem trabalha nela.",
+  "Meta é número; entrega com qualidade é reputação.",
+  "Cada turno fechado direito é um tijolo a mais na confiança da equipe.",
+  "Não é o tamanho da peça que importa, é o cuidado que ela carrega.",
+  "A qualidade não se explica no WhatsApp, se prova na peça.",
+  "Trabalho sério é o que continua igual quando ninguém está olhando.",
+  "O nome de quem soldou não vai na peça, mas o cuidado vai.",
+  "Fechar o turno com contenção zero não é sorte, é atenção do começo ao fim.",
+  "O que hoje parece rotina, amanhã é o motivo de um cliente confiar de novo.",
+  "Ninguém lembra do turno fácil; todo mundo lembra de quem resolveu o difícil.",
+  "O resultado de hoje é reflexo de decisões pequenas tomadas o turno inteiro.",
+  "Trabalho bem feito não precisa de discurso, só precisa continuar acontecendo.",
+  "Cada máquina rodando redondo é prova de gente que se importa com o que faz.",
+  "Qualidade não é o que se declara, é o que se sustenta turno após turno.",
+  "A excelência de um processo se mede nos detalhes que ninguém exige, mas todos sentem falta quando faltam.",
+  "Precisão não é talento raro — é decisão repetida a cada ponto de solda.",
+  "O verdadeiro indicador de performance não está na planilha, está na constância do cuidado.",
+  "Consistência é a forma mais silenciosa de excelência.",
+  "Onde há disciplina técnica, o resultado deixa de ser exceção e vira padrão.",
+  "A confiança de um cliente se constrói em segundos de atenção, multiplicados por cada turno.",
+  "Profissionalismo é fazer o certo mesmo quando o certo exige mais tempo.",
+  "Rigor técnico não é rigidez — é respeito com quem depende do seu trabalho.",
+  "Excelência operacional não é um objetivo distante, é uma escolha feita a cada turno.",
+  "O verdadeiro custo da qualidade não está no tempo investido, está no retrabalho evitado.",
+  "Produtividade sem qualidade não é resultado, é risco disfarçado de número.",
+  "O padrão de uma operação não se mede no melhor dia, se mede no dia mais difícil.",
+  "A eficiência real não está na velocidade da máquina, está na atenção de quem a opera.",
+  "Zero contenção não é ausência de problema, é presença constante de cuidado.",
+  "O diferencial de uma equipe não está no que ela sabe fazer, está no que ela se recusa a deixar passar.",
+  "A maturidade de um processo não se vê na meta, se vê na constância dela.",
+  "Disciplina operacional não é seguir regra, é sustentar padrão mesmo sob pressão.",
+  "Excelência não é fazer diferente uma vez, é fazer certo sempre.",
+  "Performance sustentável não nasce da pressa, nasce do método.",
+  "A robustez de um processo não está na ausência de falhas, está na velocidade de corrigi-las.",
+  "O verdadeiro indicador de time forte não é o volume produzido, é a consistência entregue.",
 ];
 
 function fraseDoDia() {
@@ -1975,7 +2001,7 @@ function salvarFoto() {
         <li>Numeração sequencial do relatório (Nº 0001, 0002...)</li>
         <li>Meta do Dia com barra visual de progresso (▰▱) no WhatsApp</li>
         <li>Código de verificação único (CS-XXXX)</li>
-        <li>25 frases inspiradoras rotativas</li>
+        <li>51 frases inspiradoras rotativas</li>
         <li>Histórico rápido do dia anterior por máquina (badge no card, só na tela)</li>
         <li>Resumo Semanal automático (produção por dia + máquinas com mais contenção)</li>
       </ol>
