@@ -307,6 +307,39 @@
   }
   .btn-tryout:hover { background: rgba(255,193,7,0.38); }
 
+  .btn-novapeca {
+    background: rgba(38,198,218,0.22);
+    border: 1.5px solid rgba(38,198,218,0.55);
+    color: #4dd0e1;
+    border-radius: 7px;
+    width: 28px; height: 28px;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 26px;
+    text-align: center;
+    cursor: pointer;
+    padding: 0;
+    transition: background 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-novapeca:hover { background: rgba(38,198,218,0.38); }
+
+  .peca-bloco-robo-titulo {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--blue);
+    opacity: 0.75;
+    margin-bottom: 2px;
+  }
+  .robo-pecas-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
   .maq-card-body {
     padding: 8px 10px;
     display: flex;
@@ -810,7 +843,7 @@
 <div class="content" id="mainContent"></div>
 
 <script>
-// ── FRASES ROTATIVAS (uma por dia, sem repetir por 51 dias) ──
+// ── FRASES ROTATIVAS (uma por dia, sem repetir por 25 dias) ──
 const FRASES_RODAPE = [
   "Solda boa não aparece no relatório — aparece na peça que não volta.",
   "Ninguém vê a faísca, mas todo mundo usa o que ela une.",
@@ -980,6 +1013,21 @@ function atualizarHistoricoOntem() {
 }
 
 // ── FEATURE 2: Alerta de operador não preenchido ──
+// Verifica se um código de peça foi registrado (com quantidade > 0) em alguma das máquinas informadas
+function pecaSoldadaEm(codigoPeca, nomesMaquinas) {
+  let encontrada = false;
+  document.querySelectorAll('.maq-card').forEach(card => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
+    if (!nomesMaquinas.includes(nome)) return;
+    card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
+      const peca = (bloco.querySelector('.peca-input')?.value || '').trim();
+      const qtd  = bloco.querySelector('.qtd-input')?.value || '';
+      if (peca === codigoPeca && qtd && qtd !== '0') encontrada = true;
+    });
+  });
+  return encontrada;
+}
+
 function verificarOperadoresFaltando() {
   const faltando = [];
   document.querySelectorAll('.maq-card').forEach(card => {
@@ -988,8 +1036,16 @@ function verificarOperadoresFaltando() {
     card.querySelectorAll('.maq-card-body .item-row').forEach(row => {
       const peca = row.querySelector('.peca-input')?.value || '';
       const qtd  = row.querySelector('.qtd-input')?.value || '';
-      if (peca || (qtd && qtd !== '0')) temPeca = true;
+      if (nome === 'Mesa') {
+        if (qtd && qtd !== '0') temPeca = true;
+      } else if (peca || (qtd && qtd !== '0')) {
+        temPeca = true;
+      }
     });
+    // Mesa só entra em jogo se a 0128400 foi de fato soldada na MS011 ou MS012 nesse turno
+    if (nome === 'Mesa' && temPeca && !pecaSoldadaEm(PECA_FIXA_MESA, ['MS011', 'MS012'])) {
+      temPeca = false;
+    }
     if (!temPeca) return;
     const opRow = card.querySelector('.operador-row');
     if (!opRow) return;
@@ -1329,6 +1385,10 @@ function criarLinha(maqId) {
     return criarLinhaMesa();
   }
 
+  if (maquinas[maqId] === 'Robo') {
+    return criarBlocoRobo();
+  }
+
   const bloco = document.createElement('div');
   bloco.className = 'peca-bloco';
   bloco.innerHTML = `
@@ -1408,6 +1468,48 @@ function criarLinhaMesa() {
   return bloco;
 }
 
+// Robô: duas áreas fixas de peça (Peça 2 opcional), sem Contenção, sem botão de Set Up
+function criarBlocoRobo() {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'robo-pecas-wrapper';
+  [1, 2].forEach(n => {
+    const bloco = document.createElement('div');
+    bloco.className = 'peca-bloco peca-bloco-robo';
+    bloco.innerHTML = `
+      <div class="peca-bloco-robo-titulo">Peça ${n}${n === 2 ? ' (opcional)' : ''}</div>
+      <div class="item-row">
+        <div class="field-group">
+          <label>Nº Peça</label>
+          <input type="text" placeholder="Ex: 6705" class="peca-input" onchange="autoPreencherFase(this)">
+          <span class="val-span"></span>
+        </div>
+        <div class="field-group">
+          <label>Operador(a)</label>
+          <input type="text" list="operadoresList" placeholder="Nome" class="peca-operador-input" onchange="salvarEstado()">
+          <span class="val-span"></span>
+        </div>
+        <div class="field-group fase">
+          <label>Fase</label>
+          <input type="number" min="10" max="90" step="10" placeholder="Fase" class="fase-input" onchange="salvarFaseDoCodigo(this)">
+          <span class="val-span"></span>
+        </div>
+        <div class="field-group qty">
+          <label>Quantidade</label>
+          <input type="number" min="0" placeholder="Qtd" class="qtd-input">
+          <span class="val-span"></span>
+        </div>
+        <div class="field-group obs">
+          <label>Observação</label>
+          <input type="text" placeholder="..." class="obs-input">
+          <span class="val-span"></span>
+        </div>
+      </div>
+    `;
+    wrapper.appendChild(bloco);
+  });
+  return wrapper;
+}
+
 const operadoresLista = [
   "Ingrid","Gustavo","Márcio","Bento","João Vitor","Simonia",
   "Silvio Fernandes","Silvana","Alex Grimek","Carlos","Matheus","Everton",
@@ -1467,13 +1569,26 @@ function criarCard(maq, idx) {
   card.className = 'maq-card';
   const header = document.createElement('div');
   header.className = 'maq-card-header';
-  header.innerHTML = `<div class="maq-card-header-titulo"><h3>${maq}</h3><div class="maq-ontem" id="ontem_${idx}"></div></div><div class="maq-card-header-btns"><button class="btn-plus" onclick="adicionarLinha('body_${idx}', ${idx})">+</button><button class="btn-tryout" onclick="adicionarLinhaTryOut('body_${idx}', ${idx})" title="Try Out">✳</button></div>`;
+  let botoesHtml;
+  if (maq === 'Robo') {
+    // Robô: peças fixas na tela, sem Set Up — só Try Out continua fazendo sentido
+    botoesHtml = `<button class="btn-tryout" onclick="adicionarLinhaTryOut('body_${idx}', ${idx})" title="Try Out">✳</button>`;
+  } else if (maq === 'Mont.1' || maq === 'Mont.2') {
+    // Montagem: troca de peça não é Set Up, por isso o botão próprio "Nova Peça"
+    botoesHtml = `<button class="btn-novapeca" onclick="adicionarLinhaNovaPeca('body_${idx}', ${idx})" title="Nova Peça">⇄</button><button class="btn-tryout" onclick="adicionarLinhaTryOut('body_${idx}', ${idx})" title="Try Out">✳</button>`;
+  } else {
+    botoesHtml = `<button class="btn-plus" onclick="adicionarLinha('body_${idx}', ${idx})">+</button><button class="btn-tryout" onclick="adicionarLinhaTryOut('body_${idx}', ${idx})" title="Try Out">✳</button>`;
+  }
+  header.innerHTML = `<div class="maq-card-header-titulo"><h3>${maq}</h3><div class="maq-ontem" id="ontem_${idx}"></div></div><div class="maq-card-header-btns">${botoesHtml}</div>`;
   const body = document.createElement('div');
   body.className = 'maq-card-body';
   body.id = `body_${idx}`;
   body.appendChild(criarLinha(idx));
   card.appendChild(header);
-  card.appendChild(criarOperadorRow(maq));
+  // Robô: operador vai embutido em cada área de peça, não precisa da linha de operador do card
+  if (maq !== 'Robo') {
+    card.appendChild(criarOperadorRow(maq));
+  }
   card.appendChild(body);
   return card;
 }
@@ -1481,6 +1596,12 @@ function criarCard(maq, idx) {
 function adicionarLinha(bodyId, idx) {
   document.getElementById(bodyId).appendChild(criarLinha(idx));
   incrementarSetUp();
+  salvarEstado();
+}
+
+// Montagem: troca/adiciona peça sem contar como Set Up
+function adicionarLinhaNovaPeca(bodyId, idx) {
+  document.getElementById(bodyId).appendChild(criarLinha(idx));
   salvarEstado();
 }
 
@@ -1871,7 +1992,11 @@ function enviarWhatsApp() {
       const contencao1 = bloco.querySelector('.contencao1-input')?.value || '';
       const contencao2 = bloco.querySelector('.contencao2-input')?.value || '';
       const operadorPeca = bloco.querySelector('.peca-operador-input')?.value || '';
-      if (peca || (qtd && qtd !== '0')) {
+      let ativa = peca || (qtd && qtd !== '0');
+      if (nome === 'Mesa') {
+        ativa = !!(qtd && qtd !== '0' && pecaSoldadaEm(PECA_FIXA_MESA, ['MS011', 'MS012']));
+      }
+      if (ativa) {
         pecasDoCard.push({ peca, fase, qtd, obs, contencao1, contencao2, operadorPeca });
       }
     });
