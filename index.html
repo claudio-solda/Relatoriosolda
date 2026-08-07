@@ -1659,6 +1659,10 @@ totaisCard.innerHTML = `
       <input type="number" min="0" placeholder="0" id="metaInput">
       <span class="val-span" id="metaSpan"></span>
     </div>
+    <div style="padding:10px 14px 4px; border-top:1.5px dashed var(--border); margin-top:6px;">
+      <label style="display:block; font-size:0.82rem; font-weight:600; margin-bottom:6px;">🗒️ Observação Geral (opcional)</label>
+      <textarea id="observacaoGeralInput" placeholder="Só preencha se algo afetou TODAS as máquinas (ex: parada geral, manutenção do compressor). Só aparece no relatório se for preenchido." style="width:100%; min-height:56px; resize:vertical; font-family:inherit; font-size:0.85rem; padding:8px 10px; border-radius:8px; border:1px solid var(--border); background:var(--bg); color:var(--text); box-sizing:border-box;"></textarea>
+    </div>
     <div class="total-row-item">
       <label>✍️ Conferido por</label>
       <input type="text" placeholder="Nome do responsável" id="responsavelInput" style="width:auto; flex:1; text-align:left; font-weight:600;">
@@ -1746,7 +1750,7 @@ const STORAGE_KEY = 'solda_relatorio_rascunho_v1';
 let salvarTimeout = null;
 
 function coletarEstado() {
-  const estado = { data: document.getElementById('dataInput').value, turno: document.querySelector('input[name="turno"]:checked')?.value || '1º', setups: document.getElementById('setUpsInput')?.value || '', tryouts: document.getElementById('tryOutInput')?.value || '', meta: document.getElementById('metaInput')?.value || '', responsavel: document.getElementById('responsavelInput')?.value || '', maquinas: {} };
+  const estado = { data: document.getElementById('dataInput').value, turno: document.querySelector('input[name="turno"]:checked')?.value || '1º', setups: document.getElementById('setUpsInput')?.value || '', tryouts: document.getElementById('tryOutInput')?.value || '', meta: document.getElementById('metaInput')?.value || '', responsavel: document.getElementById('responsavelInput')?.value || '', observacaoGeral: document.getElementById('observacaoGeralInput')?.value || '', maquinas: {} };
   estado.operadores = {};
   document.querySelectorAll('.maq-card').forEach((card, idx) => {
     const linhas = [];
@@ -1817,6 +1821,7 @@ function restaurarEstado() {
   if (salvo.tryouts !== undefined) document.getElementById('tryOutInput').value = salvo.tryouts;
   if (salvo.meta !== undefined) document.getElementById('metaInput').value = salvo.meta;
   if (salvo.responsavel !== undefined) document.getElementById('responsavelInput').value = salvo.responsavel;
+  if (salvo.observacaoGeral !== undefined) document.getElementById('observacaoGeralInput').value = salvo.observacaoGeral;
 
   Object.keys(salvo.maquinas || {}).forEach(idx => {
     const linhasSalvas = salvo.maquinas[idx];
@@ -2062,6 +2067,8 @@ function enviarWhatsApp() {
   msg += `\n\n🔐 *Cód. de verificação: ${codigo}*`;
   msg += `\n\n_"${frase}"_`;
   msg += `\n_App exclusivo criado por Claudio © — Relatório de Solda_`;
+  const obsGeral = document.getElementById('observacaoGeralInput')?.value.trim();
+  if (obsGeral) msg += `\n\n⚠️ *Observação Geral:* ${obsGeral}`;
   msg += `\n${gerarAssinatura()}`;
 
   const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
