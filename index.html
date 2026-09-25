@@ -378,6 +378,8 @@
     flex: 1;
   }
   .field-group.qty { flex: 0 0 80px; }
+  .setup-check { display:flex; align-items:center; gap:4px; font-size:10.5px; color:var(--ink-dim); margin-top:4px; white-space:nowrap; cursor:pointer; }
+  .setup-check input { width:auto; margin:0; }
   .field-group.obs { flex: 0 0 100px; }
   .field-group.fase { flex: 0 0 72px; }
   .field-group label {
@@ -1060,6 +1062,27 @@ function verificarOperadoresFaltando() {
   return faltando;
 }
 
+// ── VALIDAÇÃO: Quantidade zerada sem justificativa ──
+// Bloqueia o envio se uma peça foi informada com Qtd 0/vazia sem marcar Setup nem escrever Observação
+function verificarQuantidadesZeradas() {
+  const invalidas = [];
+  document.querySelectorAll('.maq-card').forEach(card => {
+    const nome = card.querySelector('.maq-card-header h3')?.textContent || '';
+    card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
+      const peca = (bloco.querySelector('.peca-input')?.value || '').trim();
+      if (!peca) return; // sem peça informada, essa linha nem entra no relatório
+      const qtd = bloco.querySelector('.qtd-input')?.value || '';
+      const isSetup = bloco.querySelector('.setup-checkbox')?.checked || false;
+      const obs = (bloco.querySelector('.obs-input')?.value || '').trim();
+      const zerada = !qtd || qtd === '0';
+      if (zerada && !isSetup && !obs) {
+        invalidas.push(`${nome} — peça ${peca}`);
+      }
+    });
+  });
+  return invalidas;
+}
+
 // ── FEATURE 5: Repetir operadores de ontem ──
 function repetirOperadoresDeOntem() {
   const data = document.getElementById('dataInput').value;
@@ -1235,7 +1258,7 @@ function exportarCSV() {
     card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
       const peca = bloco.querySelector('.peca-input')?.value || '';
       const fase = bloco.querySelector('.fase-input')?.value || '';
-      const qtd  = bloco.querySelector('.qtd-input')?.value || '';
+      const qtd  = lerQtdExibicao(bloco);
       const obs  = bloco.querySelector('.obs-input')?.value || '';
       const contencao1 = bloco.querySelector('.contencao1-input')?.value || '';
       const contencao2 = bloco.querySelector('.contencao2-input')?.value || '';
@@ -1400,13 +1423,14 @@ function criarLinha(maqId) {
       </div>
       <div class="field-group fase">
         <label>Fase</label>
-        <input type="number" min="10" max="90" step="10" placeholder="Fase" class="fase-input" onchange="salvarFaseDoCodigo(this)">
+        <input type="number" min="10" max="90" step="10" maxlength="2" placeholder="Fase" class="fase-input" oninput="limitarFase(this)" onchange="salvarFaseDoCodigo(this)">
         <span class="val-span"></span>
       </div>
       <div class="field-group qty">
         <label>Quantidade</label>
         <input type="number" min="0" placeholder="Qtd" class="qtd-input">
         <span class="val-span"></span>
+        <label class="setup-check"><input type="checkbox" class="setup-checkbox" onchange="toggleSetupQtd(this)"> Setup (sem produção)</label>
       </div>
       <div class="field-group obs">
         <label>Observação</label>
@@ -1456,6 +1480,7 @@ function criarLinhaMesa() {
         <label>Quantidade</label>
         <input type="number" min="0" placeholder="Qtd" class="qtd-input">
         <span class="val-span"></span>
+        <label class="setup-check"><input type="checkbox" class="setup-checkbox" onchange="toggleSetupQtd(this)"> Setup (sem produção)</label>
       </div>
       <div class="field-group obs">
         <label>Observação</label>
@@ -1490,13 +1515,14 @@ function criarBlocoRobo() {
         </div>
         <div class="field-group fase">
           <label>Fase</label>
-          <input type="number" min="10" max="90" step="10" placeholder="Fase" class="fase-input" onchange="salvarFaseDoCodigo(this)">
+          <input type="number" min="10" max="90" step="10" maxlength="2" placeholder="Fase" class="fase-input" oninput="limitarFase(this)" onchange="salvarFaseDoCodigo(this)">
           <span class="val-span"></span>
         </div>
         <div class="field-group qty">
           <label>Quantidade</label>
           <input type="number" min="0" placeholder="Qtd" class="qtd-input">
           <span class="val-span"></span>
+          <label class="setup-check"><input type="checkbox" class="setup-checkbox" onchange="toggleSetupQtd(this)"> Setup (sem produção)</label>
         </div>
         <div class="field-group obs">
           <label>Observação</label>
@@ -1717,6 +1743,35 @@ function autoPreencherResponsavel() {
   }
 }
 
+function toggleSetupQtd(checkbox) {
+  const bloco = checkbox.closest('.peca-bloco') || checkbox.closest('.item-row');
+  const qtdInput = bloco ? bloco.querySelector('.qtd-input') : null;
+  if (!qtdInput) return;
+  if (checkbox.checked) {
+    qtdInput.dataset.valorAntesSetup = qtdInput.value;
+    qtdInput.value = '0';
+    qtdInput.disabled = true;
+  } else {
+    qtdInput.disabled = false;
+    qtdInput.value = qtdInput.dataset.valorAntesSetup || '';
+  }
+  sincronizarSpans();
+  salvarEstado();
+}
+
+// Retorna o valor de Quantidade pra exibição (texto "Setup" quando a máquina só foi preparada, sem produção)
+function lerQtdExibicao(bloco) {
+  const setupChk = bloco.querySelector('.setup-checkbox');
+  if (setupChk && setupChk.checked) return 'Setup';
+  return bloco.querySelector('.qtd-input')?.value || '';
+}
+
+function limitarFase(faseInput) {
+  // Impede que a Fase absorva dígitos da Quantidade (ex: "50636" em vez de "50")
+  let v = faseInput.value.replace(/\D/g, '').slice(0, 2);
+  faseInput.value = v;
+}
+
 function getFaseMap() {
   try {
     return JSON.parse(localStorage.getItem(FASE_POR_CODIGO_KEY)) || {};
@@ -1759,6 +1814,7 @@ function coletarEstado() {
         peca: bloco.querySelector('.peca-input')?.value || '',
         fase: bloco.querySelector('.fase-input')?.value || '',
         qtd: bloco.querySelector('.qtd-input')?.value || '',
+        setup: bloco.querySelector('.setup-checkbox')?.checked || false,
         obs: bloco.querySelector('.obs-input')?.value || '',
         contencao1: bloco.querySelector('.contencao1-input')?.value || '',
         contencao2: bloco.querySelector('.contencao2-input')?.value || '',
@@ -1839,6 +1895,11 @@ function restaurarEstado() {
       const faseInput = bloco.querySelector('.fase-input');
       if (faseInput) faseInput.value = dados.fase || '';
       bloco.querySelector('.qtd-input').value = dados.qtd || '';
+      const setupChk = bloco.querySelector('.setup-checkbox');
+      if (setupChk) {
+        setupChk.checked = !!dados.setup;
+        if (dados.setup) bloco.querySelector('.qtd-input').disabled = true;
+      }
       bloco.querySelector('.obs-input').value = dados.obs || '';
       const cont1Input = bloco.querySelector('.contencao1-input');
       if (cont1Input) cont1Input.value = dados.contencao1 || '';
@@ -1966,6 +2027,12 @@ function enviarWhatsApp() {
   calcularTotal();
   sincronizarSpans();
 
+  const zeradas = verificarQuantidadesZeradas();
+  if (zeradas.length > 0) {
+    alert(`🚫 Quantidade zerada sem justificativa:\n${zeradas.join('\n')}\n\nMarque "Setup (sem produção)" ou escreva uma Observação antes de enviar.`);
+    return;
+  }
+
   const faltando = verificarOperadoresFaltando();
   if (faltando.length > 0) {
     const continuar = confirm(`⚠️ Máquina(s) sem operador preenchido:\n${faltando.join(', ')}\n\nQuer enviar assim mesmo?`);
@@ -1992,7 +2059,7 @@ function enviarWhatsApp() {
     card.querySelectorAll('.maq-card-body .peca-bloco').forEach(bloco => {
       const peca = bloco.querySelector('.peca-input')?.value || '';
       const fase = bloco.querySelector('.fase-input')?.value || '';
-      const qtd  = bloco.querySelector('.qtd-input')?.value || '';
+      const qtd  = lerQtdExibicao(bloco);
       const obs  = bloco.querySelector('.obs-input')?.value || '';
       const contencao1 = bloco.querySelector('.contencao1-input')?.value || '';
       const contencao2 = bloco.querySelector('.contencao2-input')?.value || '';
