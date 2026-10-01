@@ -380,7 +380,13 @@
   .field-group.qty { flex: 0 0 80px; }
   .setup-check { display:flex; align-items:center; gap:4px; font-size:10.5px; color:var(--ink-dim); margin-top:4px; white-space:nowrap; cursor:pointer; }
   .setup-check input { width:auto; margin:0; }
-  .field-group.obs { flex: 0 0 100px; }
+  .field-group.obs { flex: 0 0 64px; }
+  .field-group.obs input { font-size: 0.85rem; font-weight: 600; padding: 8px 6px; }
+  .field-group.obs label { font-size: 0.62rem; letter-spacing: 0.4px; }
+  .field-group.peca { flex: 1.7; min-width: 0; }
+  .field-group.peca input { font-size: 1.5rem; font-weight: 800; letter-spacing: 0.5px; padding: 8px 8px; }
+  .field-group.peca .val-span { font-size: 1.15rem; font-weight: 800; }
+  .field-group.obs .val-span { font-size: 0.78rem; }
   .field-group.fase { flex: 0 0 72px; }
   .field-group label {
     font-size: 0.72rem;
@@ -550,6 +556,8 @@
     .field-group label { font-size: 0.6rem !important; }
     .field-group input { display: none !important; }
     .field-group .val-span { display: block !important; padding: 4px 6px !important; font-size: 0.78rem !important; border: 1px solid #aaa !important; background: white !important; min-height: 26px !important; }
+    .field-group.peca .val-span { font-size: 1rem !important; font-weight: 800 !important; }
+    .field-group.obs .val-span { font-size: 0.68rem !important; }
     .total-row-item input { display: none !important; }
     .total-row-item .val-span { display: inline-block !important; padding: 4px 8px !important; font-size: 0.78rem !important; border: 1px solid #aaa !important; background: white !important; }
     .totais-card { break-inside: avoid !important; box-shadow: none !important; }
@@ -1416,7 +1424,7 @@ function criarLinha(maqId) {
   bloco.className = 'peca-bloco';
   bloco.innerHTML = `
     <div class="item-row">
-      <div class="field-group">
+      <div class="field-group peca">
         <label>Nº Peça</label>
         <input type="text" placeholder="Ex: 6705" class="peca-input" onchange="autoPreencherFase(this)">
         <span class="val-span"></span>
@@ -1466,7 +1474,7 @@ function criarLinhaMesa() {
   bloco.className = 'peca-bloco';
   bloco.innerHTML = `
     <div class="item-row">
-      <div class="field-group">
+      <div class="field-group peca">
         <label>Nº Peça</label>
         <input type="text" class="peca-input" value="${PECA_FIXA_MESA}" readonly>
         <span class="val-span"></span>
@@ -1503,7 +1511,7 @@ function criarBlocoRobo() {
     bloco.innerHTML = `
       <div class="peca-bloco-robo-titulo">Peça ${n}${n === 2 ? ' (opcional)' : ''}</div>
       <div class="item-row">
-        <div class="field-group">
+        <div class="field-group peca">
           <label>Nº Peça</label>
           <input type="text" placeholder="Ex: 6705" class="peca-input" onchange="autoPreencherFase(this)">
           <span class="val-span"></span>
