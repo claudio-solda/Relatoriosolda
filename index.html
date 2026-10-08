@@ -334,6 +334,10 @@
     opacity: 0.75;
     margin-bottom: 2px;
   }
+  .peca-bloco-robo .item-row { flex-wrap: wrap; }
+  .peca-bloco-robo .field-group.op-peca { order: -1; flex: 1 0 100%; }
+  .field-group.op-peca input { font-size: 1.25rem; font-weight: 700; }
+  .field-group.op-peca .val-span { font-size: 1.2rem; font-weight: 700; }
   .robo-pecas-wrapper {
     display: flex;
     flex-direction: column;
@@ -377,15 +381,17 @@
     gap: 2px;
     flex: 1;
   }
-  .field-group.qty { flex: 0 0 80px; }
-  .setup-check { display:flex; align-items:center; gap:4px; font-size:10.5px; color:var(--ink-dim); margin-top:4px; white-space:nowrap; cursor:pointer; }
+  .field-group.qty { flex: 0 0 58px; }
+  .field-group.qty input { font-size: 1.05rem; padding: 8px 4px; text-align: center; }
+  .field-group.qty label:not(.setup-check) { font-size: 0.6rem; letter-spacing: 0.3px; }
+  .setup-check { display:flex; align-items:center; gap:3px; font-size:9.5px; line-height:1.1; color:var(--ink-dim); margin-top:4px; white-space:normal; cursor:pointer; }
   .setup-check input { width:auto; margin:0; }
   .field-group.obs { flex: 0 0 64px; }
   .field-group.obs input { font-size: 0.85rem; font-weight: 600; padding: 8px 6px; }
   .field-group.obs label { font-size: 0.62rem; letter-spacing: 0.4px; }
-  .field-group.peca { flex: 1.7; min-width: 0; }
-  .field-group.peca input { font-size: 1.5rem; font-weight: 800; letter-spacing: 0.5px; padding: 8px 8px; }
-  .field-group.peca .val-span { font-size: 1.15rem; font-weight: 800; }
+  .field-group.peca { flex: 2.4; min-width: 0; }
+  .field-group.peca input { font-size: 1.8rem; font-weight: 800; letter-spacing: 0.5px; padding: 8px 8px; }
+  .field-group.peca .val-span { font-size: 1.4rem; font-weight: 800; }
   .field-group.obs .val-span { font-size: 0.78rem; }
   .field-group.fase { flex: 0 0 72px; }
   .field-group label {
@@ -421,7 +427,9 @@
     margin-bottom: 2px;
   }
   .operador-row .field-group label { color: var(--accent); }
-  .operador-row .field-group input { font-size: 0.95rem; font-weight: 600; }
+  .operador-row .field-group input { font-size: 1.25rem; font-weight: 700; }
+  .operador-row .field-group .val-span { font-size: 1.2rem; font-weight: 700; }
+  .peca-contencao-row .field-group:first-child input { font-size: 1.15rem; font-weight: 700; }
 
   .field-group .val-span {
     display: none;
@@ -556,7 +564,10 @@
     .field-group label { font-size: 0.6rem !important; }
     .field-group input { display: none !important; }
     .field-group .val-span { display: block !important; padding: 4px 6px !important; font-size: 0.78rem !important; border: 1px solid #aaa !important; background: white !important; min-height: 26px !important; }
-    .field-group.peca .val-span { font-size: 1rem !important; font-weight: 800 !important; }
+    .field-group.peca .val-span { font-size: 1.25rem !important; font-weight: 800 !important; }
+    .operador-row .field-group .val-span, .field-group.op-peca .val-span { font-size: 1.1rem !important; font-weight: 700 !important; }
+    .peca-contencao-row .field-group:first-child .val-span { font-size: 1.05rem !important; font-weight: 700 !important; }
+    .field-group.qty .val-span { font-size: 0.95rem !important; text-align: center !important; }
     .field-group.obs .val-span { font-size: 0.68rem !important; }
     .total-row-item input { display: none !important; }
     .total-row-item .val-span { display: inline-block !important; padding: 4px 8px !important; font-size: 0.78rem !important; border: 1px solid #aaa !important; background: white !important; }
@@ -1516,7 +1527,7 @@ function criarBlocoRobo() {
           <input type="text" placeholder="Ex: 6705" class="peca-input" onchange="autoPreencherFase(this)">
           <span class="val-span"></span>
         </div>
-        <div class="field-group">
+        <div class="field-group op-peca">
           <label>Operador(a)</label>
           <input type="text" list="operadoresList" placeholder="Nome" class="peca-operador-input" onchange="salvarEstado()">
           <span class="val-span"></span>
